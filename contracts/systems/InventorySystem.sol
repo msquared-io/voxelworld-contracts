@@ -343,9 +343,31 @@ contract InventorySystem is ERC1155, IInventorySystem, SessionSenderContext {
 
             emit ItemMoved(player, fromSlot, toSlot, fromItemId, amount);
         }
-        // Case 2: Swapping entire slots
+        // Case 2: Moving to a slot with the same item type
+        else if (fromItemId == toItemId && !isFromTool) {
+            require(toAmount + amount <= MAX_STACK_SIZE, "Stack size limit exceeded");
+
+            // Move items to target slot
+            _setSlotData(player, toSlot, toItemId, toAmount + amount);
+            
+            // Update source slot
+            uint256 newFromAmount = fromAmount - amount;
+            if (newFromAmount == 0) {
+                _setSlotData(player, fromSlot, 0, 0);
+            } else {
+                _setSlotData(player, fromSlot, fromItemId, newFromAmount);
+            }
+
+            // Record item movement in stats
+            if (address(userStatsSystem) != address(0)) {
+                userStatsSystem.recordItemMoved(player, fromSlot, toSlot, fromItemId, amount);
+            }
+
+            emit ItemMoved(player, fromSlot, toSlot, fromItemId, amount);
+        }
+        // Case 3: Swapping entire slots
         else {
-            // Must move entire stack when swapping
+            // Must move entire stack when swapping different items
             require(amount == fromAmount, "Must swap entire slot contents");
 
             // Perform the swap

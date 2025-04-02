@@ -571,4 +571,121 @@ contract InventorySystemTest is TestHelper {
 
         vm.stopPrank();
     }
+
+    function test_StackSplitting() public {
+        vm.startPrank(PLAYER);
+
+        // Test 1: Split stack into empty slot
+        // Create a stack of 40 stones
+        inventorySystem.addToSlot(PLAYER, 0, STONE, 40);
+        
+        // Split half (20) into empty slot
+        inventorySystem.moveItems(PLAYER, 0, 1, 20);
+        
+        // Verify split was successful
+        assertEq(inventorySystem.slotCounts(PLAYER, 0), 20, "Original slot should have 20 stones");
+        assertEq(inventorySystem.slotCounts(PLAYER, 1), 20, "New slot should have 20 stones");
+        assertEq(inventorySystem.inventorySlots(PLAYER, 1), STONE, "New slot should contain stone");
+
+        // Test 2: Split stack into partially filled slot
+        // Add 30 stones to slot 2
+        inventorySystem.addToSlot(PLAYER, 2, STONE, 30);
+        
+        // Try to move 20 stones from slot 0 to slot 2 (should work as 30 + 20 < 63)
+        inventorySystem.moveItems(PLAYER, 0, 2, 20);
+        
+        assertEq(inventorySystem.slotCounts(PLAYER, 0), 0, "Original slot should be empty");
+        assertEq(inventorySystem.slotCounts(PLAYER, 2), 50, "Target slot should have 50 stones");
+
+        // Test 3: Split stack respecting max stack size
+        // Create a stack of 40 stones in slot 3
+        inventorySystem.addToSlot(PLAYER, 3, STONE, 40);
+        
+        // Try to move 40 stones to slot 2 which already has 50 (should fail due to max stack size)
+        vm.expectRevert("Stack size limit exceeded");
+        inventorySystem.moveItems(PLAYER, 3, 2, 40);
+        
+        // Move only what fits (13 stones to reach max of 63)
+        inventorySystem.moveItems(PLAYER, 3, 2, 13);
+        
+        assertEq(inventorySystem.slotCounts(PLAYER, 2), 63, "Target slot should be at max capacity");
+        assertEq(inventorySystem.slotCounts(PLAYER, 3), 27, "Source slot should have remaining stones");
+
+        // Test 4: Split uneven amounts
+        // Move 7 stones from slot 3 to empty slot 4
+        inventorySystem.moveItems(PLAYER, 3, 4, 7);
+        
+        assertEq(inventorySystem.slotCounts(PLAYER, 3), 20, "Source slot should have 20 stones");
+        assertEq(inventorySystem.slotCounts(PLAYER, 4), 7, "Target slot should have 7 stones");
+
+        // Test 5: Split entire stack
+        // Move all 20 stones from slot 3 to slot 5
+        inventorySystem.moveItems(PLAYER, 3, 5, 20);
+        
+        assertEq(inventorySystem.slotCounts(PLAYER, 3), 0, "Source slot should be empty");
+        assertEq(inventorySystem.inventorySlots(PLAYER, 3), 0, "Source slot should have no item type");
+        assertEq(inventorySystem.slotCounts(PLAYER, 5), 20, "Target slot should have all stones");
+        assertEq(inventorySystem.inventorySlots(PLAYER, 5), STONE, "Target slot should contain stone");
+
+        vm.stopPrank();
+    }
+
+    function test_StackSplittingSlotPrecision() public {
+        vm.startPrank(PLAYER);
+
+        // Setup: Create some empty slots between filled slots to test precision
+        inventorySystem.addToSlot(PLAYER, 0, STONE, 40);  // Slot 0: 40 stones
+        inventorySystem.addToSlot(PLAYER, 3, DIRT, 10);   // Slot 3: 10 dirt (to ensure empty slots in between)
+        inventorySystem.addToSlot(PLAYER, 5, STONE, 20);  // Slot 5: 20 stones
+
+        // Test 1: Split stack to a specific empty slot (slot 2), ensuring it doesn't go to slot 1
+        inventorySystem.moveItems(PLAYER, 0, 2, 15);
+        
+        // Verify slot 1 remains empty
+        assertEq(inventorySystem.inventorySlots(PLAYER, 1), 0, "Slot 1 should remain empty");
+        assertEq(inventorySystem.slotCounts(PLAYER, 1), 0, "Slot 1 should have no items");
+        
+        // Verify slot 2 got exactly what we moved
+        assertEq(inventorySystem.inventorySlots(PLAYER, 2), STONE, "Slot 2 should contain stone");
+        assertEq(inventorySystem.slotCounts(PLAYER, 2), 15, "Slot 2 should have 15 stones");
+        
+        // Verify source slot (0) was properly reduced
+        assertEq(inventorySystem.slotCounts(PLAYER, 0), 25, "Slot 0 should have 25 stones remaining");
+
+        // Test 2: Move to slot with same item type, skipping empty slots
+        inventorySystem.moveItems(PLAYER, 0, 5, 10);
+        
+        // Verify intermediate slots weren't affected
+        assertEq(inventorySystem.inventorySlots(PLAYER, 1), 0, "Slot 1 should still be empty");
+        assertEq(inventorySystem.inventorySlots(PLAYER, 4), 0, "Slot 4 should remain empty");
+        
+        // Verify destination got the correct amount
+        assertEq(inventorySystem.slotCounts(PLAYER, 5), 30, "Slot 5 should now have 30 stones");
+        
+        // Verify source slot was properly reduced
+        assertEq(inventorySystem.slotCounts(PLAYER, 0), 15, "Slot 0 should have 15 stones remaining");
+
+        // Test 3: Attempt to split stack to maximum capacity
+        inventorySystem.addToSlot(PLAYER, 6, STONE, 60); // Nearly full stack
+        inventorySystem.moveItems(PLAYER, 0, 6, 3); // Add 3 more to reach 63
+        
+        // Verify it reached but didn't exceed max stack size
+        assertEq(inventorySystem.slotCounts(PLAYER, 6), 63, "Slot 6 should be at max capacity");
+        
+        // Verify source slot was properly reduced
+        assertEq(inventorySystem.slotCounts(PLAYER, 0), 12, "Slot 0 should have 12 stones remaining");
+
+        // Test 4: Verify that moving items doesn't auto-stack with other available slots
+        inventorySystem.moveItems(PLAYER, 0, 7, 5);
+        
+        // Verify the items went to slot 7 specifically, not to other slots with the same item type
+        assertEq(inventorySystem.slotCounts(PLAYER, 7), 5, "Slot 7 should have exactly 5 stones");
+        assertEq(inventorySystem.slotCounts(PLAYER, 6), 63, "Slot 6 should still be at 63 (max capacity)");
+        assertEq(inventorySystem.slotCounts(PLAYER, 5), 30, "Slot 5 should still have 30 stones");
+        
+        // Verify source slot has remaining items
+        assertEq(inventorySystem.slotCounts(PLAYER, 0), 7, "Slot 0 should have 7 stones remaining");
+
+        vm.stopPrank();
+    }
 } 
