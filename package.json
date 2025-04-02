@@ -1,6 +1,7 @@
 {
   "name": "hardhat-project",
   "type": "commonjs",
+  "license": "MIT",
   "scripts": {
     "test": "forge test --via-ir",
     "test:verbose": "npm run test -- -vvv",
