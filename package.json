@@ -1,0 +1,21 @@
+{
+  "name": "hardhat-project",
+  "type": "commonjs",
+  "scripts": {
+    "test": "forge test --via-ir",
+    "test:verbose": "npm run test -- -vvv",
+    "deploy": "npm run compile && npx hardhat run ignition/scripts/deploy.ts --network somnia",
+    "generate": "ts-node scripts/uploader.ts --minX -16 --minZ -16 --maxX 16 --maxZ 16 --maxY 8 --originX -351 --originZ 246",
+    "deploy-etherbase": "npx hardhat run ignition/scripts/deploy-etherbase.ts --network somnia",
+    "compile": "rm -rf ignition/deployments && npx hardhat compile"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ignition": "^0.15.10",
+    "@nomicfoundation/hardhat-toolbox-viem": "^3.0.0",
+    "@openzeppelin/contracts": "^5.2.0",
+    "@types/chai": "^4.2.0",
+    "chai": "^4.2.0",
+    "hardhat": "^2.22.19",
+    "viem": "^2.23.15"
+  }
+}
