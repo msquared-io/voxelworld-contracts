@@ -1,2 +1,2 @@
 // Auto-generated address file for OverlaySystem
-export const OverlaySystemAddress = "0x2C99D794cA453CB102edC69030054F52D63CF2B2" as const;
+export const OverlaySystemAddress = "0x83f2198aaaB2BF3775035cD01e3F1bBB7084bB39" as const;

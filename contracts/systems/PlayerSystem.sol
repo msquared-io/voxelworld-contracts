@@ -59,6 +59,8 @@ contract PlayerSystem is WorldUtils, IPlayerSystem {
         uint32 chunkKey = _decodeChunkId(combined);
 
         emit PlayerTransformUpdated(sender, combined, chunkKey);
+
+        userStatsSystem.recordPlayerUpdate(sender);
         
         // Only calculate distance if this isn't the first transform update
         if (previousTransform != 0) {

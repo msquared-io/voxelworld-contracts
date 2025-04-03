@@ -5,6 +5,7 @@ interface IOverlaySystem {
     // Events
     event BlockPlaced(address indexed player, int32 x, int32 y, int32 z, uint8 blockType);
     event BlockRemoved(address indexed player, int32 x, int32 y, int32 z, uint8 blockType, bool minted);
+    event ChunkOverlayWiped(int32 chunkX, int32 chunkY, int32 chunkZ);
 
     // Structs
     struct BlockModification {
@@ -18,6 +19,7 @@ interface IOverlaySystem {
     function removeBlock(int32 x, int32 y, int32 z) external;
     function getChunkOverlay(int32 chunkX, int32 chunkY, int32 chunkZ) external view returns (uint16[] memory positions, uint8[] memory blockTypes);
     function getBlockModification(int32 x, int32 y, int32 z) external view returns (address modifierAddress, uint256 timestamp, uint8 blockType);
+    function wipeChunkOverlay(int32 chunkX, int32 chunkY, int32 chunkZ) external;
 
     // Custom errors
     error CannotPlaceAir();

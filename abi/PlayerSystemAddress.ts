@@ -1,2 +1,2 @@
 // Auto-generated address file for PlayerSystem
-export const PlayerSystemAddress = "0x3c474b3DFd565C57b5b695D92A57B91A283154EF" as const;
+export const PlayerSystemAddress = "0x2C5E2F8d4dAAd9d13335aa84848a3bA3ccD2cF74" as const;

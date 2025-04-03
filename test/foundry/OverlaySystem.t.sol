@@ -306,4 +306,68 @@ contract OverlaySystemTest is TestHelper {
 
         vm.stopPrank();
     }
+
+    function test_WipeChunkOverlay() public {
+        vm.startPrank(OWNER);
+        // Create chunk
+        chunkSystem.createChunk(0, 0, 0);
+        vm.stopPrank();
+
+        vm.startPrank(address(overlaySystem));
+        // Give player some blocks
+        inventorySystem.mint(PLAYER, STONE, 3);
+        inventorySystem.mint(PLAYER, GRASS, 3);
+        vm.stopPrank();
+
+        vm.startPrank(PLAYER);
+        // Place multiple blocks in the chunk
+        overlaySystem.placeBlock(0, 0, 0, uint8(STONE));
+        overlaySystem.placeBlock(0, 1, 0, uint8(STONE));
+        overlaySystem.placeBlock(0, 2, 0, uint8(GRASS));
+        vm.stopPrank();
+
+        // Verify blocks are in the overlay
+        (uint16[] memory positions, uint8[] memory blockTypes) = overlaySystem.getChunkOverlay(0, 0, 0);
+        assertEq(positions.length, 3, "Should have 3 blocks in overlay before wiping");
+        assertEq(blockTypes.length, 3, "Should have 3 block types in overlay before wiping");
+
+        // Non-owner should not be able to wipe
+        vm.startPrank(PLAYER);
+        vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", PLAYER));
+        overlaySystem.wipeChunkOverlay(0, 0, 0);
+        vm.stopPrank();
+
+        // Owner wipes the chunk overlay
+        vm.startPrank(OWNER);
+        overlaySystem.wipeChunkOverlay(0, 0, 0);
+        vm.stopPrank();
+
+        // Verify overlay is empty
+        (positions, blockTypes) = overlaySystem.getChunkOverlay(0, 0, 0);
+        assertEq(positions.length, 0, "Should have no blocks in overlay after wiping");
+        assertEq(blockTypes.length, 0, "Should have no block types in overlay after wiping");
+    }
+
+    function test_WipeChunkOverlayNonexistentChunk() public {
+        // Try to wipe a nonexistent chunk
+        vm.startPrank(OWNER);
+        vm.expectRevert(IOverlaySystem.ChunkDoesNotExist.selector);
+        overlaySystem.wipeChunkOverlay(999, 999, 999);
+        vm.stopPrank();
+    }
+
+    function test_WipeChunkOverlayEmptyChunk() public {
+        vm.startPrank(OWNER);
+        // Create empty chunk
+        chunkSystem.createChunk(0, 0, 0);
+        
+        // Should succeed but have no effect
+        overlaySystem.wipeChunkOverlay(0, 0, 0);
+        
+        // Verify overlay is empty
+        (uint16[] memory positions, uint8[] memory blockTypes) = overlaySystem.getChunkOverlay(0, 0, 0);
+        assertEq(positions.length, 0, "Should have no blocks in overlay");
+        assertEq(blockTypes.length, 0, "Should have no block types in overlay");
+        vm.stopPrank();
+    }
 } 

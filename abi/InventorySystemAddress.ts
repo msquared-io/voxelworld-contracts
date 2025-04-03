@@ -1,2 +1,2 @@
 // Auto-generated address file for InventorySystem
-export const InventorySystemAddress = "0xe2fDbACB85DE5ae37454dcd0B62aDaf466a3BdCF" as const;
+export const InventorySystemAddress = "0xD6dc70c36B5b96040c512b064dD4E10749EB1df0" as const;

@@ -308,4 +308,35 @@ contract OverlaySystem is WorldUtils, IOverlaySystem {
         BlockModification memory mod = blockModifications[worldKey];
         return (mod.modifierAddress, mod.timestamp, mod.blockType);
     }
+
+    function wipeChunkOverlay(int32 chunkX, int32 chunkY, int32 chunkZ) external override onlyOwner {
+        if (!chunkSystem.chunkExists(chunkX, chunkY, chunkZ)) {
+            revert ChunkDoesNotExist();
+        }
+
+        // Clear all slots in the chunk's overlay
+        for (uint8 trackerIndex = 0; trackerIndex < 4; trackerIndex++) {
+            uint256 trackerKey = _packTrackerKey(chunkX, chunkY, chunkZ, trackerIndex);
+            uint256 trackerValue = modifiedSlotTracker[trackerKey];
+            
+            if (trackerValue == 0) continue;
+            
+            uint256 tv = trackerValue;
+            while (tv != 0) {
+                uint8 bitPos = uint8(_ctz(tv));
+                uint8 slotIndex = (trackerIndex * 32) + bitPos;
+                uint256 key = _packChunkStorageKey(chunkX, chunkY, chunkZ, slotIndex);
+                
+                // Clear the slot
+                overlay[key] = 0;
+                
+                tv &= ~(uint256(1) << bitPos);
+            }
+            
+            // Clear the tracker
+            modifiedSlotTracker[trackerKey] = 0;
+        }
+
+        emit ChunkOverlayWiped(chunkX, chunkY, chunkZ);
+    }
 } 

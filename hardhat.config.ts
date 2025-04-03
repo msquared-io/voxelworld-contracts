@@ -17,7 +17,7 @@ const config: HardhatUserConfig = {
       url: "http://localhost:8545",
     },
     somnia: {
-      url: "https://dream-rpc.somnia.network/",
+      url: "http://104.155.69.63:8545",
       accounts: [process.env.PRIVATE_KEY!],
     },
   },
