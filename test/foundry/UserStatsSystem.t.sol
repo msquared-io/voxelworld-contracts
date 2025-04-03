@@ -10,6 +10,7 @@ contract UserStatsSystemTest is TestHelper {
     address constant FAKE_MOVEMENT = address(0x5);
     address constant FAKE_CRAFTING = address(0x6);
     address constant FAKE_INVENTORY = address(0x7);
+    address constant FAKE_PLAYER = address(0x8);
 
     function setUp() public override {
         super.setUp();
@@ -20,7 +21,8 @@ contract UserStatsSystemTest is TestHelper {
             FAKE_OVERLAY,
             FAKE_MOVEMENT,
             FAKE_CRAFTING,
-            FAKE_INVENTORY
+            FAKE_INVENTORY,
+            FAKE_PLAYER
         );
         vm.stopPrank();
     }
@@ -40,6 +42,7 @@ contract UserStatsSystemTest is TestHelper {
             ,  // totalPlaced
             ,  // totalDistance
             ,  // totalCrafted
+            ,  // totalPlayerUpdates
             IUserStatsSystem.BlockTypeCount[] memory minedBlocks,
             ,  // placedBlocks
             ,  // craftedItems
@@ -95,6 +98,7 @@ contract UserStatsSystemTest is TestHelper {
             uint256 totalPlaced,
             ,  // totalDistance
             ,  // totalCrafted
+            ,  // totalPlayerUpdates
             ,  // minedBlocks
             IUserStatsSystem.BlockTypeCount[] memory placedBlocks,
             ,  // craftedItems
@@ -149,6 +153,7 @@ contract UserStatsSystemTest is TestHelper {
             ,  // totalPlaced
             uint256 totalDistance,
             ,  // totalCrafted
+            ,  // totalPlayerUpdates
             ,  // minedBlocks
             ,  // placedBlocks
             ,  // craftedItems
@@ -182,6 +187,7 @@ contract UserStatsSystemTest is TestHelper {
             ,  // totalPlaced
             ,  // totalDistance
             uint256 totalCrafted,
+            ,  // totalPlayerUpdates
             ,  // minedBlocks
             ,  // placedBlocks
             IUserStatsSystem.ItemTypeCount[] memory craftedItems,
@@ -250,6 +256,7 @@ contract UserStatsSystemTest is TestHelper {
             ,  // totalPlaced
             ,  // totalDistance
             ,  // totalCrafted
+            ,  // totalPlayerUpdates
             IUserStatsSystem.BlockTypeCount[][] memory minedBlocks,
             ,  // placedBlocks
             ,  // craftedItems
@@ -283,6 +290,7 @@ contract UserStatsSystemTest is TestHelper {
             ,  // totalPlaced
             ,  // totalDistance
             ,  // totalCrafted
+            ,  // totalPlayerUpdates
             ,  // minedBlocks
             ,  // placedBlocks
             ,  // craftedItems
@@ -543,6 +551,7 @@ contract UserStatsSystemTest is TestHelper {
             uint256 totalPlaced,
             uint256 totalDistance,
             uint256 totalCrafted,
+            uint256 totalPlayerUpdates,
             IUserStatsSystem.BlockTypeCount[] memory minedBlocks,
             ,  // placedBlocks
             IUserStatsSystem.ItemTypeCount[] memory craftedItems,
@@ -559,6 +568,7 @@ contract UserStatsSystemTest is TestHelper {
         assertEq(totalPlaced, 0, "Global total placed should be 0");
         assertEq(totalDistance, 150, "Global total distance should be 150");
         assertEq(totalCrafted, 2, "Global total crafted should be 2");
+        assertEq(totalPlayerUpdates, 0, "Global total player updates should be 0");
         
         // Verify mined blocks
         assertEq(minedBlocks.length, 2, "Should have 2 types of blocks mined globally");
@@ -686,5 +696,92 @@ contract UserStatsSystemTest is TestHelper {
         assertEq(burnedItems[0].itemType, STONE, "Should be STONE in burned items");
         assertEq(burnedItems[0].count, 3, "Global STONE burned count should be 3");
         assertEq(burnedCounts[0], 3, "Global STONE burned count in array should be 3");
+    }
+
+    function testRecordPlayerUpdate() public {
+        vm.startPrank(FAKE_PLAYER);
+        
+        // Record some updates
+        userStatsSystem.recordPlayerUpdate(PLAYER);
+        userStatsSystem.recordPlayerUpdate(PLAYER);
+        userStatsSystem.recordPlayerUpdate(PLAYER2);
+        
+        // Get user stats for PLAYER
+        (
+            address userAddress,
+            ,  // totalMined
+            ,  // totalPlaced
+            ,  // totalDistance
+            ,  // totalCrafted
+            uint256 totalPlayerUpdates,
+            ,  // minedBlocks
+            ,  // placedBlocks
+            ,  // craftedItems
+            ,  // minedBlockTypes
+            ,  // minedCounts
+            ,  // placedBlockTypes
+            ,  // placedCounts
+            ,  // craftedItemTypes
+            // craftedCounts
+        ) = userStatsSystem.getUserStats(PLAYER);
+        
+        // Verify stats for PLAYER
+        assertEq(userAddress, PLAYER);
+        assertEq(totalPlayerUpdates, 2);
+        
+        // Get user stats for PLAYER2
+        (
+            userAddress,
+            ,  // totalMined
+            ,  // totalPlaced
+            ,  // totalDistance
+            ,  // totalCrafted
+            totalPlayerUpdates,
+            ,  // minedBlocks
+            ,  // placedBlocks
+            ,  // craftedItems
+            ,  // minedBlockTypes
+            ,  // minedCounts
+            ,  // placedBlockTypes
+            ,  // placedCounts
+            ,  // craftedItemTypes
+            // craftedCounts
+        ) = userStatsSystem.getUserStats(PLAYER2);
+        
+        // Verify stats for PLAYER2
+        assertEq(userAddress, PLAYER2);
+        assertEq(totalPlayerUpdates, 1);
+        
+        // Get global stats
+        (
+            ,  // totalMined
+            ,  // totalPlaced
+            ,  // totalDistance
+            ,  // totalCrafted
+            totalPlayerUpdates,
+            ,  // minedBlocks
+            ,  // placedBlocks
+            ,  // craftedItems
+            ,  // minedBlockTypes
+            ,  // minedCounts
+            ,  // placedBlockTypes
+            ,  // placedCounts
+            ,  // craftedItemTypes
+            // craftedCounts
+        ) = userStatsSystem.getGlobalStats();
+        
+        // Verify global stats
+        assertEq(totalPlayerUpdates, 3, "Global total player updates should be 3");
+        
+        vm.stopPrank();
+    }
+
+    function testOnlyPlayerSystemCanRecordUpdates() public {
+        vm.startPrank(PLAYER);
+        
+        vm.expectRevert("Only PlayerSystem can call this");
+        userStatsSystem.recordPlayerUpdate(PLAYER);
+        
+        vm.stopPrank();
     }
 } 

@@ -44,13 +44,21 @@ contract PlayerSystem is WorldUtils, IPlayerSystem {
         return (x, y, z);
     }
 
+    function _decodeChunkId(uint256 combined) internal pure returns (uint32 chunkKey) {
+        // Extract the chunk key (32 bits) which is stored at bits 32-63
+        return uint32(combined >> 32);
+    }
+
     function updatePlayerTransform(uint256 combined) external override {
         address sender = _msgSender();
         uint256 previousTransform = playerTransforms[sender];
         
         // Store the new transform
         playerTransforms[sender] = combined;
-        emit PlayerTransformUpdated(sender, combined);
+
+        uint32 chunkKey = _decodeChunkId(combined);
+
+        emit PlayerTransformUpdated(sender, combined, chunkKey);
         
         // Only calculate distance if this isn't the first transform update
         if (previousTransform != 0) {

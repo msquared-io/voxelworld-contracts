@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 interface IPlayerSystem {
     // Events
-    event PlayerTransformUpdated(address indexed player, uint256 combined);
+    event PlayerTransformUpdated(address indexed player, uint256 combined, uint32 chunkKey);
     event PlayerProfileUpdated(address indexed player, string name, string skinUrl);
 
     // Structs

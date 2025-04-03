@@ -10,6 +10,7 @@ interface IUserStatsSystem {
     event ItemMinted(address indexed user, uint256 itemType, uint256 amount);
     event ItemBurned(address indexed user, uint256 itemType, uint256 amount);
     event ItemMoved(address indexed user, uint8 fromSlot, uint8 toSlot, uint256 itemType, uint256 amount);
+    event PlayerUpdated(address indexed user);
 
     // Structs
     struct BlockTypeCount {
@@ -53,6 +54,7 @@ interface IUserStatsSystem {
     function recordItemMinted(address user, uint256 itemType, uint256 amount) external;
     function recordItemBurned(address user, uint256 itemType, uint256 amount) external;
     function recordItemMoved(address user, uint8 fromSlot, uint8 toSlot, uint256 itemType, uint256 amount) external;
+    function recordPlayerUpdate(address user) external;
     
     // View functions
     function getUserStats(address user) external view returns (
@@ -61,6 +63,7 @@ interface IUserStatsSystem {
         uint256 totalPlaced,
         uint256 totalDistance,
         uint256 totalCrafted,
+        uint256 totalPlayerUpdates,
         BlockTypeCount[] memory minedBlocks,
         BlockTypeCount[] memory placedBlocks,
         ItemTypeCount[] memory craftedItems,
@@ -92,6 +95,7 @@ interface IUserStatsSystem {
         uint256[] memory totalPlaced,
         uint256[] memory totalDistance,
         uint256[] memory totalCrafted,
+        uint256[] memory totalPlayerUpdates,
         BlockTypeCount[][] memory minedBlocks,
         BlockTypeCount[][] memory placedBlocks,
         ItemTypeCount[][] memory craftedItems,
@@ -120,6 +124,7 @@ interface IUserStatsSystem {
         uint256 totalPlaced,
         uint256 totalDistance,
         uint256 totalCrafted,
+        uint256 totalPlayerUpdates,
         BlockTypeCount[] memory minedBlocks,
         BlockTypeCount[] memory placedBlocks,
         ItemTypeCount[] memory craftedItems,

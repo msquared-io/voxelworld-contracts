@@ -11,8 +11,8 @@ contract PlayerSystemTest is TestHelper {
 
     // Helper function to encode position (matches JS encodePosition)
     function encodePosition(int x, int y, int z) internal pure returns (uint256) {
-        // Adjust position by eye height (1.4 blocks)
-        int adjustedY = y - 14_000; // 1.4 * 10000 for fixed point
+        // Adjust position by eye height (1.65 blocks)
+        int adjustedY = y - 16_500; // Using 16500 for simplicity (slightly higher than 1.65)
 
         // Add offset to handle negative values (1,000,000) and multiply by 1000 for fixed point
         uint256 posX = uint256(int256((x + 1_000_000) * 1000)) & 0xffffffff;
@@ -44,9 +44,10 @@ contract PlayerSystemTest is TestHelper {
         int rotZ
     ) internal pure returns (uint256) {
         // Calculate chunk coordinates
-        int chunkX = posX / 16;
-        int chunkY = (posY - 16_500) / 16; // Subtract 1.65 blocks eye height
-        int chunkZ = posZ / 16;
+        // For negative coordinates, we need to offset by -16 to match Math.floor behavior
+        int chunkX = posX < 0 ? (posX - 15) / 16 : posX / 16;
+        int chunkY = posY < 0 ? (posY - 15) / 16 : posY / 16;
+        int chunkZ = posZ < 0 ? (posZ - 15) / 16 : posZ / 16;
 
         // Combine chunk coordinates into a single 32-bit value
         uint256 chunkKey = (
@@ -81,6 +82,7 @@ contract PlayerSystemTest is TestHelper {
             ,  // totalPlaced
             uint256 totalDistance,
             ,  // totalCrafted
+            ,  // totalPlayerUpdates
             ,  // minedBlocks
             ,  // placedBlocks
             ,  // craftedItems
@@ -147,6 +149,60 @@ contract PlayerSystemTest is TestHelper {
         assertEq(x, 1000);
         assertEq(y, 2000);
         assertEq(z, 3000);
+    }
+
+    function test_DecodeChunkKey() public {
+        vm.startPrank(PLAYER);
+        
+        // Test position that should be in chunk (1, -1, 2)
+        // Position (20, -10, 35) -> Chunk (1, -1, 2)
+        uint256 transform = encodeCombined(
+            0,      // timestamp
+            -5,     // posX -> chunk -1
+            10,    // posY -> chunk 0
+            35,     // posZ -> chunk 2
+            0, 0, 0 // rotation
+        );
+        
+        // Record emitted events
+        vm.recordLogs();
+        
+        playerSystem.updatePlayerTransform(transform);
+        
+        // Get the emitted logs
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        
+        // Find our event (should be the first one)
+        bytes32 expectedTopic = keccak256("PlayerTransformUpdated(address,uint256,uint32)");
+        
+        // Find the matching event
+        bool found = false;
+        for (uint i = 0; i < entries.length; i++) {
+            if (entries[i].topics[0] == expectedTopic) {
+                // Decode the event data
+                (uint256 emittedTransform, uint32 emittedChunkKey) = abi.decode(entries[i].data, (uint256, uint32));
+                
+                // Verify the transform matches
+                assertEq(emittedTransform, transform, "Transform mismatch");
+                
+                // Extract expected chunk coordinates from emitted chunk key
+                int256 emittedChunkX = int256(uint256((emittedChunkKey >> 20) & 0x3ff)) - 512;
+                int256 emittedChunkY = int256(uint256((emittedChunkKey >> 10) & 0x3ff)) - 512;
+                int256 emittedChunkZ = int256(uint256(emittedChunkKey & 0x3ff)) - 512;
+                
+                // Verify chunk coordinates
+                assertEq(emittedChunkX, -1, "ChunkX mismatch");
+                assertEq(emittedChunkY, 0, "ChunkY mismatch");
+                assertEq(emittedChunkZ, 2, "ChunkZ mismatch");
+                
+                found = true;
+                break;
+            }
+        }
+        
+        assertTrue(found, "PlayerTransformUpdated event not found");
+        
+        vm.stopPrank();
     }
 
     function _packTransform(

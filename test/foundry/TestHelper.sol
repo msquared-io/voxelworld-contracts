@@ -97,7 +97,8 @@ contract TestHelper is Test {
             address(overlaySystem),
             address(playerSystem),
             address(craftingSystem),
-            address(inventorySystem)
+            address(inventorySystem),
+            address(playerSystem)
         );
         
         // Set up system references

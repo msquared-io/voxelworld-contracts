@@ -10,6 +10,7 @@ contract UserStatsSystem is WorldUtils, IUserStatsSystem {
     address public immutable movementSystem;
     address public immutable craftingSystem;
     address public immutable inventorySystem;
+    address public immutable playerSystem;
 
     // Efficient storage of user stats
     struct UserStats {
@@ -24,6 +25,8 @@ contract UserStatsSystem is WorldUtils, IUserStatsSystem {
         uint256 totalMinted;
         uint256 totalBurned;
         uint256 totalMoved;
+        // Total number of player updates
+        uint256 totalPlayerUpdates;
         // Mapping of blockType => count for mining
         mapping(uint8 => uint256) minedBlocks;
         // Mapping of blockType => count for placing
@@ -66,6 +69,7 @@ contract UserStatsSystem is WorldUtils, IUserStatsSystem {
         uint256 totalMinted;
         uint256 totalBurned;
         uint256 totalMoved;
+        uint256 totalPlayerUpdates;
         BlockArrays minedBlocks;
         BlockArrays placedBlocks;
         ItemArrays craftedItems;
@@ -88,12 +92,14 @@ contract UserStatsSystem is WorldUtils, IUserStatsSystem {
         address _overlaySystem,
         address _movementSystem,
         address _craftingSystem,
-        address _inventorySystem
+        address _inventorySystem,
+        address _playerSystem
     ) WorldUtils(sessionManager) {
         overlaySystem = _overlaySystem;
         movementSystem = _movementSystem;
         craftingSystem = _craftingSystem;
         inventorySystem = _inventorySystem;
+        playerSystem = _playerSystem;
     }
 
     modifier onlyOverlaySystem() {
@@ -113,6 +119,11 @@ contract UserStatsSystem is WorldUtils, IUserStatsSystem {
 
     modifier onlyInventorySystem() {
         require(msg.sender == inventorySystem, "Only InventorySystem can call this");
+        _;
+    }
+
+    modifier onlyPlayerSystem() {
+        require(msg.sender == playerSystem, "Only PlayerSystem can call this");
         _;
     }
 
@@ -170,58 +181,69 @@ contract UserStatsSystem is WorldUtils, IUserStatsSystem {
     function _createBlockArrays(
         uint8[] storage blockTypes,
         mapping(uint8 => uint256) storage blockCounts
-    ) private view returns (BlockArrays memory arrays) {
+    ) private view returns (BlockArrays memory) {
         uint256 length = blockTypes.length;
-        arrays.blockTypeCounts = new BlockTypeCount[](length);
-        arrays.types = new uint256[](length);
-        arrays.counts = new uint256[](length);
+        BlockArrays memory arrays = BlockArrays({
+            blockTypeCounts: new BlockTypeCount[](length),
+            types: new uint256[](length),
+            counts: new uint256[](length)
+        });
         
-        for (uint256 i = 0; i < length; i++) {
+        for (uint256 i = 0; i < length;) {
             uint8 blockType = blockTypes[i];
-            arrays.blockTypeCounts[i] = BlockTypeCount({
-                blockType: blockType,
-                count: blockCounts[blockType]
-            });
+            uint256 count = blockCounts[blockType];
+            arrays.blockTypeCounts[i].blockType = blockType;
+            arrays.blockTypeCounts[i].count = count;
             arrays.types[i] = blockType;
-            arrays.counts[i] = blockCounts[blockType];
+            arrays.counts[i] = count;
+            unchecked { ++i; }
         }
+        
+        return arrays;
     }
 
     // Helper function to create item type arrays
     function _createItemArrays(
         uint256[] storage itemTypes,
         mapping(uint256 => uint256) storage itemCounts
-    ) private view returns (ItemArrays memory arrays) {
+    ) private view returns (ItemArrays memory) {
         uint256 length = itemTypes.length;
-        arrays.itemTypeCounts = new ItemTypeCount[](length);
-        arrays.types = new uint256[](length);
-        arrays.counts = new uint256[](length);
+        ItemArrays memory arrays = ItemArrays({
+            itemTypeCounts: new ItemTypeCount[](length),
+            types: new uint256[](length),
+            counts: new uint256[](length)
+        });
         
-        for (uint256 i = 0; i < length; i++) {
+        for (uint256 i = 0; i < length;) {
             uint256 itemType = itemTypes[i];
-            arrays.itemTypeCounts[i] = ItemTypeCount({
-                itemType: itemType,
-                count: itemCounts[itemType]
-            });
+            uint256 count = itemCounts[itemType];
+            arrays.itemTypeCounts[i].itemType = itemType;
+            arrays.itemTypeCounts[i].count = count;
             arrays.types[i] = itemType;
-            arrays.counts[i] = itemCounts[itemType];
+            arrays.counts[i] = count;
+            unchecked { ++i; }
         }
+        
+        return arrays;
     }
 
     // Helper function to create stats data
-    function _createStatsData(UserStats storage stats) private view returns (StatsData memory data) {
-        data.totalMined = stats.totalMined;
-        data.totalPlaced = stats.totalPlaced;
-        data.totalDistance = stats.totalDistance;
-        data.totalCrafted = stats.totalCrafted;
-        data.totalMinted = stats.totalMinted;
-        data.totalBurned = stats.totalBurned;
-        data.totalMoved = stats.totalMoved;
-        data.minedBlocks = _createBlockArrays(stats.minedBlockTypes, stats.minedBlocks);
-        data.placedBlocks = _createBlockArrays(stats.placedBlockTypes, stats.placedBlocks);
-        data.craftedItems = _createItemArrays(stats.craftedItemTypes, stats.craftedItems);
-        data.mintedItems = _createItemArrays(stats.mintedItemTypes, stats.mintedItems);
-        data.burnedItems = _createItemArrays(stats.burnedItemTypes, stats.burnedItems);
+    function _createStatsData(UserStats storage stats) private view returns (StatsData memory) {
+        return StatsData({
+            totalMined: stats.totalMined,
+            totalPlaced: stats.totalPlaced,
+            totalDistance: stats.totalDistance,
+            totalCrafted: stats.totalCrafted,
+            totalMinted: stats.totalMinted,
+            totalBurned: stats.totalBurned,
+            totalMoved: stats.totalMoved,
+            totalPlayerUpdates: stats.totalPlayerUpdates,
+            minedBlocks: _createBlockArrays(stats.minedBlockTypes, stats.minedBlocks),
+            placedBlocks: _createBlockArrays(stats.placedBlockTypes, stats.placedBlocks),
+            craftedItems: _createItemArrays(stats.craftedItemTypes, stats.craftedItems),
+            mintedItems: _createItemArrays(stats.mintedItemTypes, stats.mintedItems),
+            burnedItems: _createItemArrays(stats.burnedItemTypes, stats.burnedItems)
+        });
     }
 
     // Helper enum for item actions
@@ -310,12 +332,22 @@ contract UserStatsSystem is WorldUtils, IUserStatsSystem {
         emit ItemMoved(user, fromSlot, toSlot, itemType, amount);
     }
 
+    function recordPlayerUpdate(address user) external onlyPlayerSystem {
+        _addUserIfNew(user);
+        UserStats storage stats = userStats[user];
+        stats.totalPlayerUpdates++;
+        globalStats.totalPlayerUpdates++;
+        
+        emit PlayerUpdated(user);
+    }
+
     function _getUserStats(address user) internal view returns (
         address userAddress,
         uint256 totalMined,
         uint256 totalPlaced,
         uint256 totalDistance,
         uint256 totalCrafted,
+        uint256 totalPlayerUpdates,
         BlockTypeCount[] memory minedBlocks,
         BlockTypeCount[] memory placedBlocks,
         ItemTypeCount[] memory craftedItems,
@@ -334,6 +366,7 @@ contract UserStatsSystem is WorldUtils, IUserStatsSystem {
             data.totalPlaced,
             data.totalDistance,
             data.totalCrafted,
+            data.totalPlayerUpdates,
             data.minedBlocks.blockTypeCounts,
             data.placedBlocks.blockTypeCounts,
             data.craftedItems.itemTypeCounts,
@@ -352,6 +385,7 @@ contract UserStatsSystem is WorldUtils, IUserStatsSystem {
         uint256 totalPlaced,
         uint256 totalDistance,
         uint256 totalCrafted,
+        uint256 totalPlayerUpdates,
         BlockTypeCount[] memory minedBlocks,
         BlockTypeCount[] memory placedBlocks,
         ItemTypeCount[] memory craftedItems,
@@ -396,6 +430,7 @@ contract UserStatsSystem is WorldUtils, IUserStatsSystem {
         uint256 totalPlaced,
         uint256 totalDistance,
         uint256 totalCrafted,
+        uint256 totalPlayerUpdates,
         BlockTypeCount[] memory minedBlocks,
         BlockTypeCount[] memory placedBlocks,
         ItemTypeCount[] memory craftedItems,
@@ -413,6 +448,7 @@ contract UserStatsSystem is WorldUtils, IUserStatsSystem {
             data.totalPlaced,
             data.totalDistance,
             data.totalCrafted,
+            data.totalPlayerUpdates,
             data.minedBlocks.blockTypeCounts,
             data.placedBlocks.blockTypeCounts,
             data.craftedItems.itemTypeCounts,
@@ -477,6 +513,7 @@ contract UserStatsSystem is WorldUtils, IUserStatsSystem {
         uint256[] memory totalPlaced,
         uint256[] memory totalDistance,
         uint256[] memory totalCrafted,
+        uint256[] memory totalPlayerUpdates,
         BlockTypeCount[][] memory minedBlocks,
         BlockTypeCount[][] memory placedBlocks,
         ItemTypeCount[][] memory craftedItems,
@@ -495,6 +532,7 @@ contract UserStatsSystem is WorldUtils, IUserStatsSystem {
                 new uint256[](0),
                 new uint256[](0),
                 new uint256[](0),
+                new uint256[](0),
                 new BlockTypeCount[][](0),
                 new BlockTypeCount[][](0),
                 new ItemTypeCount[][](0),
@@ -507,17 +545,16 @@ contract UserStatsSystem is WorldUtils, IUserStatsSystem {
             );
         }
         
-        uint256 end = offset + limit;
-        if (end > totalUsers) {
-            end = totalUsers;
-        }
+        uint256 end = offset + limit > totalUsers ? totalUsers : offset + limit;
         uint256 length = end - offset;
         
+        // Initialize arrays
         userAddresses = new address[](length);
         totalMined = new uint256[](length);
         totalPlaced = new uint256[](length);
         totalDistance = new uint256[](length);
         totalCrafted = new uint256[](length);
+        totalPlayerUpdates = new uint256[](length);
         minedBlocks = new BlockTypeCount[][](length);
         placedBlocks = new BlockTypeCount[][](length);
         craftedItems = new ItemTypeCount[][](length);
@@ -528,7 +565,8 @@ contract UserStatsSystem is WorldUtils, IUserStatsSystem {
         craftedItemTypes = new uint256[][](length);
         craftedCounts = new uint256[][](length);
         
-        for (uint256 i = 0; i < length; i++) {
+        // Fill arrays
+        for (uint256 i = 0; i < length;) {
             address user = allUsers[offset + i];
             StatsData memory data = _createStatsData(userStats[user]);
             
@@ -537,15 +575,22 @@ contract UserStatsSystem is WorldUtils, IUserStatsSystem {
             totalPlaced[i] = data.totalPlaced;
             totalDistance[i] = data.totalDistance;
             totalCrafted[i] = data.totalCrafted;
+            totalPlayerUpdates[i] = data.totalPlayerUpdates;
+            
+            // Block-related data
             minedBlocks[i] = data.minedBlocks.blockTypeCounts;
             placedBlocks[i] = data.placedBlocks.blockTypeCounts;
-            craftedItems[i] = data.craftedItems.itemTypeCounts;
             minedBlockTypes[i] = data.minedBlocks.types;
             minedCounts[i] = data.minedBlocks.counts;
             placedBlockTypes[i] = data.placedBlocks.types;
             placedCounts[i] = data.placedBlocks.counts;
+            
+            // Item-related data
+            craftedItems[i] = data.craftedItems.itemTypeCounts;
             craftedItemTypes[i] = data.craftedItems.types;
             craftedCounts[i] = data.craftedItems.counts;
+            
+            unchecked { ++i; }
         }
     }
 
@@ -575,12 +620,10 @@ contract UserStatsSystem is WorldUtils, IUserStatsSystem {
             );
         }
         
-        uint256 end = offset + limit;
-        if (end > totalUsers) {
-            end = totalUsers;
-        }
+        uint256 end = offset + limit > totalUsers ? totalUsers : offset + limit;
         uint256 length = end - offset;
         
+        // Initialize arrays
         totalMinted = new uint256[](length);
         totalBurned = new uint256[](length);
         totalMoved = new uint256[](length);
@@ -591,19 +634,27 @@ contract UserStatsSystem is WorldUtils, IUserStatsSystem {
         burnedItemTypes = new uint256[][](length);
         burnedCounts = new uint256[][](length);
         
-        for (uint256 i = 0; i < length; i++) {
+        // Fill arrays
+        for (uint256 i = 0; i < length;) {
             address user = allUsers[offset + i];
             StatsData memory data = _createStatsData(userStats[user]);
             
+            // Basic stats
             totalMinted[i] = data.totalMinted;
             totalBurned[i] = data.totalBurned;
             totalMoved[i] = data.totalMoved;
+            
+            // Minted items data
             mintedItems[i] = data.mintedItems.itemTypeCounts;
-            burnedItems[i] = data.burnedItems.itemTypeCounts;
             mintedItemTypes[i] = data.mintedItems.types;
             mintedCounts[i] = data.mintedItems.counts;
+            
+            // Burned items data
+            burnedItems[i] = data.burnedItems.itemTypeCounts;
             burnedItemTypes[i] = data.burnedItems.types;
             burnedCounts[i] = data.burnedItems.counts;
+            
+            unchecked { ++i; }
         }
     }
 } 
