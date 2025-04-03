@@ -7,7 +7,6 @@ import "../../contracts/systems/UserStatsSystem.sol";
 contract UserStatsSystemTest is TestHelper {
     address constant PLAYER2 = address(0x3);
     address constant FAKE_OVERLAY = address(0x4);
-    address constant FAKE_MOVEMENT = address(0x5);
     address constant FAKE_CRAFTING = address(0x6);
     address constant FAKE_INVENTORY = address(0x7);
     address constant FAKE_PLAYER = address(0x8);
@@ -19,7 +18,6 @@ contract UserStatsSystemTest is TestHelper {
         userStatsSystem = new UserStatsSystem(
             address(sessionManager),
             FAKE_OVERLAY,
-            FAKE_MOVEMENT,
             FAKE_CRAFTING,
             FAKE_INVENTORY,
             FAKE_PLAYER
@@ -140,7 +138,7 @@ contract UserStatsSystemTest is TestHelper {
     }
 
     function testRecordDistanceMoved() public {
-        vm.startPrank(FAKE_MOVEMENT);
+        vm.startPrank(FAKE_PLAYER);
         
         // Record some movement
         userStatsSystem.recordDistanceMoved(PLAYER, 100);
@@ -321,7 +319,7 @@ contract UserStatsSystemTest is TestHelper {
     function testOnlyMovementSystemCanRecordDistance() public {
         vm.startPrank(PLAYER);
         
-        vm.expectRevert("Only MovementSystem can call this");
+        vm.expectRevert("Only PlayerSystem can call this");
         userStatsSystem.recordDistanceMoved(PLAYER, 100);
         
         vm.stopPrank();
@@ -533,7 +531,7 @@ contract UserStatsSystemTest is TestHelper {
         
         vm.stopPrank();
         
-        vm.startPrank(FAKE_MOVEMENT);
+        vm.startPrank(FAKE_PLAYER);
         // Record some movement stats
         userStatsSystem.recordDistanceMoved(PLAYER, 100);
         userStatsSystem.recordDistanceMoved(PLAYER2, 50);

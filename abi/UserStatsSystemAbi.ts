@@ -14,17 +14,17 @@ export const UserStatsSystemAbi = [
       },
       {
         "internalType": "address",
-        "name": "_movementSystem",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
         "name": "_craftingSystem",
         "type": "address"
       },
       {
         "internalType": "address",
         "name": "_inventorySystem",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_playerSystem",
         "type": "address"
       }
     ],
@@ -242,6 +242,19 @@ export const UserStatsSystemAbi = [
     "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      }
+    ],
+    "name": "PlayerUpdated",
+    "type": "event"
+  },
+  {
     "inputs": [],
     "name": "AIR",
     "outputs": [
@@ -393,6 +406,11 @@ export const UserStatsSystemAbi = [
       {
         "internalType": "uint256[]",
         "name": "totalCrafted",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "totalPlayerUpdates",
         "type": "uint256[]"
       },
       {
@@ -606,6 +624,11 @@ export const UserStatsSystemAbi = [
         "type": "uint256"
       },
       {
+        "internalType": "uint256",
+        "name": "totalPlayerUpdates",
+        "type": "uint256"
+      },
+      {
         "components": [
           {
             "internalType": "uint8",
@@ -809,6 +832,11 @@ export const UserStatsSystemAbi = [
         "type": "uint256"
       },
       {
+        "internalType": "uint256",
+        "name": "totalPlayerUpdates",
+        "type": "uint256"
+      },
+      {
         "components": [
           {
             "internalType": "uint8",
@@ -908,19 +936,6 @@ export const UserStatsSystemAbi = [
   },
   {
     "inputs": [],
-    "name": "movementSystem",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "overlaySystem",
     "outputs": [
       {
@@ -935,6 +950,19 @@ export const UserStatsSystemAbi = [
   {
     "inputs": [],
     "name": "owner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "playerSystem",
     "outputs": [
       {
         "internalType": "address",
@@ -1097,6 +1125,19 @@ export const UserStatsSystemAbi = [
       }
     ],
     "name": "recordItemMoved",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      }
+    ],
+    "name": "recordPlayerUpdate",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

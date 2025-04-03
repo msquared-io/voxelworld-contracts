@@ -1,2 +1,2 @@
 // Auto-generated address file for CraftingSystem
-export const CraftingSystemAddress = "0x8eB798cC7F1889d193BAA2Cc5Fd344A816256623" as const;
+export const CraftingSystemAddress = "0xb0d526c9AAd2807Be9c509E0C54f838B52Ca55d0" as const;

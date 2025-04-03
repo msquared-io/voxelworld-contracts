@@ -565,6 +565,19 @@ export const InventorySystemAbi = [
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "craftingSystem",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "address",
@@ -891,6 +904,19 @@ export const InventorySystemAbi = [
   },
   {
     "inputs": [],
+    "name": "overlaySystem",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "owner",
     "outputs": [
       {
@@ -1095,6 +1121,24 @@ export const InventorySystemAbi = [
       }
     ],
     "name": "setSelectedSlot",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_craftingSystem",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_overlaySystem",
+        "type": "address"
+      }
+    ],
+    "name": "setSystemAddresses",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

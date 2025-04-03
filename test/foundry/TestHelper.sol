@@ -99,7 +99,6 @@ contract TestHelper is Test {
         userStatsSystem = new UserStatsSystem(
             address(sessionManager),
             address(overlaySystem),
-            address(playerSystem),
             address(craftingSystem),
             address(inventorySystem),
             address(playerSystem)

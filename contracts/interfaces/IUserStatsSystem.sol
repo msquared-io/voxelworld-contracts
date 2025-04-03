@@ -12,6 +12,9 @@ interface IUserStatsSystem {
     event ItemMoved(address indexed user, uint8 fromSlot, uint8 toSlot, uint256 itemType, uint256 amount);
     event PlayerUpdated(address indexed user);
 
+    // Enums
+    enum ItemAction { CRAFT, MINT, BURN }
+
     // Structs
     struct BlockTypeCount {
         uint8 blockType;

@@ -251,6 +251,11 @@ export const VoxelWorldAbi = [
         "type": "uint256[]"
       },
       {
+        "internalType": "uint256[]",
+        "name": "totalPlayerUpdates",
+        "type": "uint256[]"
+      },
+      {
         "components": [
           {
             "internalType": "uint8",
@@ -563,6 +568,11 @@ export const VoxelWorldAbi = [
         "type": "uint256"
       },
       {
+        "internalType": "uint256",
+        "name": "totalPlayerUpdates",
+        "type": "uint256"
+      },
+      {
         "components": [
           {
             "internalType": "uint8",
@@ -826,6 +836,11 @@ export const VoxelWorldAbi = [
       {
         "internalType": "uint256",
         "name": "totalCrafted",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalPlayerUpdates",
         "type": "uint256"
       },
       {

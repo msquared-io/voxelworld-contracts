@@ -96,6 +96,12 @@ export const PlayerSystemAbi = [
         "internalType": "uint256",
         "name": "combined",
         "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint32",
+        "name": "chunkKey",
+        "type": "uint32"
       }
     ],
     "name": "PlayerTransformUpdated",

@@ -1,2 +1,2 @@
 // Auto-generated address file for VoxelWorld
-export const VoxelWorldAddress = "0xB50431E97e65758aF80aCa1Cf2637156f1570a7C" as const;
+export const VoxelWorldAddress = "0xBb87AD46ac6a73a25Ac818f3115556Ce8D9E8634" as const;

@@ -45,9 +45,9 @@ const VoxelModule = buildModule("VoxelModule", (m) => {
     : m.contract("UserStatsSystem", [
         sessionManagerAddress,
         overlaySystem,
-        playerSystem,
         craftingSystem,
-        inventorySystem
+        inventorySystem,
+        playerSystem
       ])
 
   // Set up system references
@@ -55,6 +55,7 @@ const VoxelModule = buildModule("VoxelModule", (m) => {
   m.call(playerSystem, "setUserStatsSystem", [userStatsSystem])
   m.call(craftingSystem, "setUserStatsSystem", [userStatsSystem])
   m.call(inventorySystem, "setUserStatsSystem", [userStatsSystem])
+  m.call(inventorySystem, "setSystemAddresses", [craftingSystem, overlaySystem])
 
   // Deploy VoxelWorld
   const voxelWorld = m.contract("VoxelWorld", [
