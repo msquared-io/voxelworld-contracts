@@ -76,22 +76,26 @@ contract TestHelper is Test {
         // Deploy session manager
         sessionManager = new SessionsManager();
         
-        // Deploy inventory system
-        inventorySystem = new InventorySystem(address(sessionManager));
-        
-        // Deploy crafting system
-        craftingSystem = new CraftingSystem(address(sessionManager), address(inventorySystem));
-        
-        // Deploy chunk system
+        // Deploy systems in order to handle circular dependencies
+        // First deploy the systems that don't depend on inventory
         chunkSystem = new ChunkSystem(address(sessionManager));
-        
-        // Deploy overlay system
-        overlaySystem = new OverlaySystem(address(sessionManager), address(chunkSystem), address(inventorySystem));
-        
-        // Deploy player system
         playerSystem = new PlayerSystem(address(sessionManager));
+
+        // Now deploy inventory with the real crafting and overlay addresses
+        inventorySystem = new InventorySystem(
+            address(sessionManager)
+        );
         
-        // Deploy user stats system with all required systems
+        
+        // Then deploy crafting and overlay systems with a temporary inventory address
+        craftingSystem = new CraftingSystem(address(sessionManager), address(inventorySystem));
+        overlaySystem = new OverlaySystem(address(sessionManager), address(chunkSystem), address(inventorySystem));
+
+        // Set the crafting and overlay addresses in the inventory system
+        inventorySystem.setSystemAddresses(address(craftingSystem), address(overlaySystem));
+        
+
+        // Finally deploy user stats system
         userStatsSystem = new UserStatsSystem(
             address(sessionManager),
             address(overlaySystem),

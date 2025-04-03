@@ -15,10 +15,14 @@ contract OverlaySystemTest is TestHelper {
         chunkSystem.createChunk(0, 0, 0);
         vm.stopPrank();
 
-        vm.startPrank(PLAYER);
+        vm.startPrank(address(overlaySystem));
 
         // Place a stone block
         inventorySystem.mint(PLAYER, STONE, 1);
+
+        vm.stopPrank();
+
+        vm.startPrank(PLAYER);
         overlaySystem.placeBlock(0, 0, 0, uint8(STONE));
 
         // Try to remove it without a pickaxe (using empty slot 0)
@@ -37,10 +41,13 @@ contract OverlaySystemTest is TestHelper {
         chunkSystem.createChunk(0, 0, 0);
         vm.stopPrank();
 
-        vm.startPrank(PLAYER);
-
+        vm.startPrank(address(overlaySystem));
         // Test grass block
         inventorySystem.mint(PLAYER, GRASS, 1);
+
+        vm.stopPrank();
+
+        vm.startPrank(PLAYER);
         overlaySystem.placeBlock(0, 0, 0, uint8(GRASS));
         
         // Initial balance should be 0 after placing
@@ -54,7 +61,11 @@ contract OverlaySystemTest is TestHelper {
         assertEq(inventorySystem.balanceOf(PLAYER, GRASS), 1, "Should receive grass block without needing tools");
 
         // Test wood block
+        vm.stopPrank();
+        vm.startPrank(address(overlaySystem));
         inventorySystem.mint(PLAYER, WOOD, 1);
+        vm.stopPrank();
+        vm.startPrank(PLAYER);
         overlaySystem.placeBlock(0, 0, 1, uint8(WOOD));
         
         // Initial balance should be 0 after placing
@@ -75,11 +86,15 @@ contract OverlaySystemTest is TestHelper {
         chunkSystem.createChunk(0, 0, 0);
         vm.stopPrank();
 
-        vm.startPrank(PLAYER);
+        vm.startPrank(address(overlaySystem));
 
         // Give player a wooden pickaxe and some stone
         inventorySystem.mint(PLAYER, WOODEN_PICKAXE, 1);
         inventorySystem.mint(PLAYER, STONE, 1);
+
+        vm.stopPrank();
+
+        vm.startPrank(PLAYER);
 
         // Place a stone block
         overlaySystem.placeBlock(0, 0, 0, uint8(STONE));
@@ -105,7 +120,7 @@ contract OverlaySystemTest is TestHelper {
         }
         vm.stopPrank();
 
-        vm.startPrank(PLAYER);
+        vm.startPrank(address(overlaySystem));
 
         // First give stone
         inventorySystem.mint(PLAYER, STONE, 63);
@@ -114,6 +129,10 @@ contract OverlaySystemTest is TestHelper {
         for(uint i = 0; i < 5; i++) {
             inventorySystem.mint(PLAYER, WOODEN_PICKAXE, 1);
         }
+
+        vm.stopPrank();
+
+        vm.startPrank(PLAYER);
 
         // Initial balances should be correct
         assertEq(inventorySystem.balanceOf(PLAYER, STONE), 63, "Should have 63 stone initially");
@@ -151,7 +170,7 @@ contract OverlaySystemTest is TestHelper {
         chunkSystem.createChunk(0, 0, 0);
         vm.stopPrank();
 
-        vm.startPrank(PLAYER);
+        vm.startPrank(address(overlaySystem));
 
         // Give player multiple tools and blocks in specific slots
         inventorySystem.mint(PLAYER, WOODEN_PICKAXE, 1);
@@ -160,6 +179,10 @@ contract OverlaySystemTest is TestHelper {
         inventorySystem.mint(PLAYER, STONE_PICKAXE, 1);
         inventorySystem.mint(PLAYER, STONE, 1);
         inventorySystem.mint(PLAYER, IRON_ORE, 1);
+
+        vm.stopPrank();
+
+        vm.startPrank(PLAYER);
 
         // Place blocks
         overlaySystem.placeBlock(0, 0, 0, uint8(STONE));  // Requires wooden pickaxe
@@ -183,13 +206,17 @@ contract OverlaySystemTest is TestHelper {
         chunkSystem.createChunk(0, 0, 0);
         vm.stopPrank();
 
-        vm.startPrank(PLAYER);
+        vm.startPrank(address(overlaySystem));
 
         // Give player one of each block type in specific slots
         inventorySystem.mint(PLAYER, WOODEN_PICKAXE, 1);
         inventorySystem.mint(PLAYER, STONE, 1);
         inventorySystem.mint(PLAYER, GRASS, 1);
         inventorySystem.mint(PLAYER, WOOD, 1);
+
+        vm.stopPrank();
+
+        vm.startPrank(PLAYER);
 
         // Place all blocks
         overlaySystem.placeBlock(0, 0, 0, uint8(STONE));  // Requires pickaxe
@@ -222,11 +249,15 @@ contract OverlaySystemTest is TestHelper {
         chunkSystem.createChunk(0, 0, 0);
         vm.stopPrank();
 
-        vm.startPrank(PLAYER);
+        vm.startPrank(address(overlaySystem));
 
         // Give player a wooden pickaxe and stone
         inventorySystem.mint(PLAYER, WOODEN_PICKAXE, 1);
         inventorySystem.mint(PLAYER, STONE, 1);
+
+        vm.stopPrank();
+
+        vm.startPrank(PLAYER);
 
         // Place a stone block
         overlaySystem.placeBlock(0, 0, 0, uint8(STONE));

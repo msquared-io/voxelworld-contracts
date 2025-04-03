@@ -27,6 +27,23 @@ contract InventorySystem is ERC1155, IInventorySystem, SessionSenderContext {
 
     // Reference to user stats system for tracking
     IUserStatsSystem public userStatsSystem;
+    
+    // Reference to authorized systems
+    address public craftingSystem;
+    address public overlaySystem;
+
+    modifier onlyCraftingOrOverlay() {
+        require(
+            msg.sender == craftingSystem || msg.sender == overlaySystem,
+            "Only CraftingSystem or OverlaySystem can call this"
+        );
+        _;
+    }
+
+    function setSystemAddresses(address _craftingSystem, address _overlaySystem) external onlyOwner {
+        craftingSystem = _craftingSystem;
+        overlaySystem = _overlaySystem;
+    }
 
     // Override _msgSender to use SessionSenderContext's implementation
     function _msgSender() internal view virtual override(Context, SessionSenderContext) returns (address) {
@@ -58,7 +75,9 @@ contract InventorySystem is ERC1155, IInventorySystem, SessionSenderContext {
     // Selected slot per player
     mapping(address => uint8) public selectedSlots;
 
-    constructor(address sessionManager) ERC1155("") SessionSenderContext(sessionManager) {
+    constructor(
+        address sessionManager
+    ) ERC1155("") SessionSenderContext(sessionManager) {
         // Initialize item names
         _itemNames[MinecraftConstants.WOODEN_PICKAXE] = "Wooden Pickaxe";
         _itemNames[MinecraftConstants.STONE_PICKAXE] = "Stone Pickaxe";
@@ -231,7 +250,7 @@ contract InventorySystem is ERC1155, IInventorySystem, SessionSenderContext {
     }
 
     // Function to add item to a specific slot
-    function addToSlot(address player, uint8 slot, uint256 itemId, uint256 amount) external {
+    function addToSlot(address player, uint8 slot, uint256 itemId, uint256 amount) external onlyCraftingOrOverlay {
         require(slot < MAX_SLOTS, "Invalid slot number");
         require(amount > 0, "Amount must be positive");
         
@@ -264,7 +283,7 @@ contract InventorySystem is ERC1155, IInventorySystem, SessionSenderContext {
     }
 
     // Function to remove item from a specific slot
-    function removeFromSlot(address player, uint8 slot, uint256 amount) external {
+    function removeFromSlot(address player, uint8 slot, uint256 amount) external onlyCraftingOrOverlay {
         require(slot < MAX_SLOTS, "Invalid slot number");
         require(amount > 0, "Amount must be positive");
         
@@ -386,7 +405,7 @@ contract InventorySystem is ERC1155, IInventorySystem, SessionSenderContext {
     }
 
     // Override mint function
-    function mint(address to, uint256 id, uint256 amount) external override {
+    function mint(address to, uint256 id, uint256 amount) external override onlyCraftingOrOverlay {
         require(amount > 0, "Amount must be positive");
 
         uint256 tokenId = id;
@@ -464,7 +483,7 @@ contract InventorySystem is ERC1155, IInventorySystem, SessionSenderContext {
     }
 
     // Override burn function
-    function burn(address from, uint256 id, uint256 amount) external override {
+    function burn(address from, uint256 id, uint256 amount) external override onlyCraftingOrOverlay {
         require(amount > 0, "Amount must be positive");
         
         if (_isToolItem(id)) {
@@ -551,7 +570,7 @@ contract InventorySystem is ERC1155, IInventorySystem, SessionSenderContext {
         return false;
     }
 
-    function useToolFromSlot(address player, uint8 slot, uint8 blockType) external override returns (bool) {
+    function useToolFromSlot(address player, uint8 slot, uint8 blockType) external override onlyCraftingOrOverlay returns (bool) {
         require(slot < MAX_SLOTS, "Invalid slot number");
         
         // Read the slot data

@@ -43,7 +43,7 @@ contract CraftingSystemTest is TestHelper {
     }
 
     function test_CraftingOperations() public {
-        vm.startPrank(PLAYER);
+        vm.startPrank(address(craftingSystem));
 
         // get the next unique token id which will be the wooden pickaxe
         uint256 nextTokenId = inventorySystem.nextTokenId();
@@ -51,6 +51,10 @@ contract CraftingSystemTest is TestHelper {
 
         // Test crafting wooden planks from wood
         inventorySystem.mint(PLAYER, WOOD, 1);
+
+        vm.stopPrank();
+        vm.startPrank(PLAYER);
+
         craftingSystem.craftItem(WOOD_PLANKS);
         assertEq(inventorySystem.balanceOf(PLAYER, WOOD_PLANKS), 4, "Should get 4 wooden planks from 1 wood");
 
@@ -62,7 +66,11 @@ contract CraftingSystemTest is TestHelper {
         // Test crafting wooden pickaxe
         // Need 3 planks and 2 sticks
         // We used 2 planks for sticks, so mint 1 more wood for more planks
+        vm.stopPrank();
+        vm.startPrank(address(craftingSystem));
         inventorySystem.mint(PLAYER, WOOD, 1);
+        vm.stopPrank();
+        vm.startPrank(PLAYER);
         craftingSystem.craftItem(WOOD_PLANKS);  // Get 4 more planks
         craftingSystem.craftItem(WOODEN_PICKAXE);
         assertEq(inventorySystem.balanceOf(PLAYER, woodenPickaxeTokenId), 1, "Should get 1 wooden pickaxe");
@@ -90,11 +98,14 @@ contract CraftingSystemTest is TestHelper {
     }
 
     function test_IntegrationWithInventory() public {
-        vm.startPrank(PLAYER);
+        vm.startPrank(address(craftingSystem));
 
         // Now mint exactly what we need
         inventorySystem.mint(PLAYER, COBBLESTONE, 3);
         inventorySystem.mint(PLAYER, STICK, 2);
+
+        vm.stopPrank();
+        vm.startPrank(PLAYER);
 
         uint256 initialCobblestone = inventorySystem.balanceOf(PLAYER, COBBLESTONE);
         uint256 initialSticks = inventorySystem.balanceOf(PLAYER, STICK);
@@ -115,7 +126,7 @@ contract CraftingSystemTest is TestHelper {
     }
 
     function test_RevertWhen_CraftingWithFullInventory() public {
-        vm.startPrank(PLAYER);
+        vm.startPrank(address(craftingSystem));
 
         // Fill all inventory slots except the last two
         for (uint8 i = 0; i < 35; i++) {
@@ -125,16 +136,23 @@ contract CraftingSystemTest is TestHelper {
         // Try to craft something
         inventorySystem.mint(PLAYER, WOOD, 1);
         vm.expectRevert(ICraftingSystem.NoInventorySpace.selector);
+
+        vm.stopPrank();
+        vm.startPrank(PLAYER);
+
         craftingSystem.craftItem(WOOD_PLANKS);
 
         vm.stopPrank();
     }
 
     function test_CraftingEvents() public {
-        vm.startPrank(PLAYER);
+        vm.startPrank(address(craftingSystem));
 
         // Prepare for crafting
         inventorySystem.mint(PLAYER, WOOD, 1);
+
+        vm.stopPrank();
+        vm.startPrank(PLAYER);
 
         // Get the recipe details first
         (uint256[] memory inputIds, uint256[] memory amounts, , ) = craftingSystem.getRecipe(WOOD_PLANKS);

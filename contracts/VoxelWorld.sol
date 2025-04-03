@@ -29,17 +29,19 @@ contract VoxelWorld {
         address craftingSystemAddress,
         address userStatsSystemAddress
     ) {
-        require(chunkSystemAddress != address(0), "ChunkSystem address cannot be zero");
-        require(overlaySystemAddress != address(0), "OverlaySystem address cannot be zero");
-        require(playerSystemAddress != address(0), "PlayerSystem address cannot be zero");
-        require(inventorySystemAddress != address(0), "InventorySystem address cannot be zero");
-        require(craftingSystemAddress != address(0), "CraftingSystem address cannot be zero");
-        require(userStatsSystemAddress != address(0), "UserStatsSystem address cannot be zero");
-        
+        // Validate addresses
+        require(chunkSystemAddress != address(0), "Invalid chunk system address");
+        require(overlaySystemAddress != address(0), "Invalid overlay system address");
+        require(playerSystemAddress != address(0), "Invalid player system address");
+        require(inventorySystemAddress != address(0), "Invalid inventory system address");
+        require(craftingSystemAddress != address(0), "Invalid crafting system address");
+        require(userStatsSystemAddress != address(0), "Invalid user stats system address");
+
+        // Initialize references
         chunkSystem = IChunkSystem(chunkSystemAddress);
-        inventorySystem = IInventorySystem(inventorySystemAddress);
         overlaySystem = IOverlaySystem(overlaySystemAddress);
         playerSystem = IPlayerSystem(playerSystemAddress);
+        inventorySystem = IInventorySystem(inventorySystemAddress);
         craftingSystem = ICraftingSystem(craftingSystemAddress);
         userStatsSystem = IUserStatsSystem(userStatsSystemAddress);
     }

@@ -15,7 +15,7 @@ contract InventorySystemTest is TestHelper {
         assertEq(inventorySystem.symbol(), "VW");
 
         // Test adding items to empty slots
-        vm.startPrank(PLAYER);
+        vm.startPrank(address(craftingSystem));
         
         uint8 slot = 0;
         uint256 amount = 5;
@@ -46,6 +46,43 @@ contract InventorySystemTest is TestHelper {
 
         assertEq(inventorySystem.slotCounts(PLAYER, removeSlot), initialAmount - removeAmount);
 
+        vm.stopPrank();
+    }
+
+    function test_OnlyCraftingOrOverlayCanModifyInventory() public {
+        vm.startPrank(PLAYER);
+        
+        vm.expectRevert("Only CraftingSystem or OverlaySystem can call this");
+        inventorySystem.mint(PLAYER, STONE, 1);
+        
+        vm.expectRevert("Only CraftingSystem or OverlaySystem can call this");
+        inventorySystem.burn(PLAYER, STONE, 1);
+        
+        vm.expectRevert("Only CraftingSystem or OverlaySystem can call this");
+        inventorySystem.addToSlot(PLAYER, 0, STONE, 1);
+        
+        vm.expectRevert("Only CraftingSystem or OverlaySystem can call this");
+        inventorySystem.removeFromSlot(PLAYER, 0, 1);
+
+        vm.expectRevert("Only CraftingSystem or OverlaySystem can call this");
+        inventorySystem.useToolFromSlot(PLAYER, 0, uint8(STONE));
+        
+        vm.stopPrank();
+        
+        // Test that crafting system can call these functions
+        vm.startPrank(address(craftingSystem));
+        inventorySystem.mint(PLAYER, STONE, 1);
+        inventorySystem.burn(PLAYER, STONE, 1);
+        inventorySystem.mint(PLAYER, WOODEN_PICKAXE, 1);
+        assertTrue(inventorySystem.useToolFromSlot(PLAYER, 0, uint8(STONE)));
+        vm.stopPrank();
+        
+        // Test that overlay system can call these functions
+        vm.startPrank(address(overlaySystem));
+        inventorySystem.mint(PLAYER, STONE, 1);
+        inventorySystem.burn(PLAYER, STONE, 1);
+        inventorySystem.mint(PLAYER, WOODEN_PICKAXE, 1);
+        assertTrue(inventorySystem.useToolFromSlot(PLAYER, 0, uint8(STONE)));
         vm.stopPrank();
     }
 
@@ -95,11 +132,15 @@ contract InventorySystemTest is TestHelper {
         chunkSystem.createChunk(0, 4, 0);
         vm.stopPrank();
 
-        vm.startPrank(PLAYER);
+        vm.startPrank(address(overlaySystem));
 
         // Add tools and stone block
         inventorySystem.mint(PLAYER, WOODEN_PICKAXE, 1);
         inventorySystem.addToSlot(PLAYER, 1, STONE, 1);
+
+        vm.stopPrank();
+
+        vm.startPrank(PLAYER);
 
         // Place the stone block
         overlaySystem.placeBlock(0, 64, 0, uint8(STONE));
@@ -121,7 +162,7 @@ contract InventorySystemTest is TestHelper {
     }
 
     function test_ToolManagement() public {
-        vm.startPrank(PLAYER);
+        vm.startPrank(address(overlaySystem));
 
         // Test wooden pickaxe for stone mining
         inventorySystem.mint(PLAYER, WOODEN_PICKAXE, 1);
@@ -144,7 +185,7 @@ contract InventorySystemTest is TestHelper {
     }
 
     function test_ERC1155Functionality() public {
-        vm.startPrank(PLAYER);
+        vm.startPrank(address(overlaySystem));
 
         // Test minting
         uint256 amount = 10;
@@ -172,7 +213,11 @@ contract InventorySystemTest is TestHelper {
         assertEq(emptyContents.length, 0, "Initial inventory should be empty");
 
         // Test minting items goes into first available slot
+        vm.startPrank(address(overlaySystem));
         inventorySystem.mint(PLAYER, STONE, 5);
+        vm.stopPrank();
+
+        vm.startPrank(PLAYER);
         InventoryItem[] memory contents = inventorySystem.getInventoryContents(PLAYER);
         assertEq(contents.length, 1, "Should have one item type");
         assertEq(contents[0].slot, 0, "Should be in first slot");
@@ -181,13 +226,21 @@ contract InventorySystemTest is TestHelper {
         assertEq(contents[0].name, "Stone", "Should have correct name");
 
         // Test minting same item type stacks in same slot if possible
+        vm.startPrank(address(overlaySystem));
         inventorySystem.mint(PLAYER, STONE, 3);
+        vm.stopPrank();
+
+        vm.startPrank(PLAYER);
         contents = inventorySystem.getInventoryContents(PLAYER);
         assertEq(contents.length, 1, "Should still have one item type");
         assertEq(contents[0].amount, 8, "Should have 8 stones total");
 
         // Test minting tool goes into new slot
+        vm.startPrank(address(overlaySystem));
         inventorySystem.mint(PLAYER, WOODEN_PICKAXE, 1);
+        vm.stopPrank();
+
+        vm.startPrank(PLAYER);
         contents = inventorySystem.getInventoryContents(PLAYER);
         assertEq(contents.length, 2, "Should have two item types");
         
@@ -204,7 +257,11 @@ contract InventorySystemTest is TestHelper {
         assertTrue(foundPickaxe, "Should have found the pickaxe");
 
         // Test minting beyond stack size creates new slot
+        vm.startPrank(address(overlaySystem));
         inventorySystem.mint(PLAYER, STONE, 60);
+        vm.stopPrank();
+
+        vm.startPrank(PLAYER);
         contents = inventorySystem.getInventoryContents(PLAYER);
         assertEq(contents.length, 3, "Should have three item stacks");
         
@@ -229,19 +286,29 @@ contract InventorySystemTest is TestHelper {
     }
 
     function test_ItemStackingPriority() public {
-        vm.startPrank(PLAYER);
+        vm.startPrank(address(overlaySystem));
 
         // First create some existing stacks with space
         inventorySystem.mint(PLAYER, STONE, 60); // First slot almost full
         inventorySystem.mint(PLAYER, DIRT, 1);   // Second slot with different item
         inventorySystem.mint(PLAYER, STONE, 40); // Third slot partially full
 
+        vm.stopPrank();
+
+        vm.startPrank(PLAYER);
+
         // Verify initial state
         InventoryItem[] memory initialContents = inventorySystem.getInventoryContents(PLAYER);
         assertEq(initialContents.length, 3, "Should have three item stacks initially");
 
+        vm.stopPrank();
+        vm.startPrank(address(overlaySystem));
+
         // Now mint more stone - should go to the non-full existing stack first
         inventorySystem.mint(PLAYER, STONE, 10);
+
+        vm.stopPrank();
+        vm.startPrank(PLAYER);
 
         // Check final state
         InventoryItem[] memory finalContents = inventorySystem.getInventoryContents(PLAYER);
@@ -267,9 +334,12 @@ contract InventorySystemTest is TestHelper {
         );
 
         // Test that tools don't stack
+        vm.startPrank(address(overlaySystem));
         inventorySystem.mint(PLAYER, WOODEN_PICKAXE, 1);
         inventorySystem.mint(PLAYER, WOODEN_PICKAXE, 1);
-        
+        vm.stopPrank();
+
+        vm.startPrank(PLAYER);
         finalContents = inventorySystem.getInventoryContents(PLAYER);
         uint256 pickaxeCount = 0;
         for (uint i = 0; i < finalContents.length; i++) {
@@ -284,13 +354,15 @@ contract InventorySystemTest is TestHelper {
     }
 
     function test_SwapEntireSlots() public {
-        vm.startPrank(PLAYER);
+        vm.startPrank(address(overlaySystem));
 
         // Setup: Add two different stacks
         inventorySystem.addToSlot(PLAYER, 0, STONE, 32);
         inventorySystem.addToSlot(PLAYER, 1, DIRT, 16);
 
         // Test swapping entire stacks
+        vm.stopPrank();
+        vm.startPrank(PLAYER);
         inventorySystem.moveItems(PLAYER, 0, 1, 32);
 
         // Verify the swap
@@ -303,13 +375,15 @@ contract InventorySystemTest is TestHelper {
     }
 
     function test_SwapToolWithItems() public {
-        vm.startPrank(PLAYER);
+        vm.startPrank(address(overlaySystem));
 
         // Setup: Add a stack of stones and a pickaxe
         inventorySystem.addToSlot(PLAYER, 0, STONE, 32);
         inventorySystem.mint(PLAYER, WOODEN_PICKAXE, 1);
 
         // Test swapping tool with entire stack
+        vm.stopPrank();
+        vm.startPrank(PLAYER);
         inventorySystem.moveItems(PLAYER, 0, 1, 32);
 
         // Verify the swap
@@ -322,10 +396,13 @@ contract InventorySystemTest is TestHelper {
     }
 
     function test_MoveToEmptySlot() public {
-        vm.startPrank(PLAYER);
+        vm.startPrank(address(overlaySystem));
 
         // Setup: Add a stack of stones
         inventorySystem.addToSlot(PLAYER, 0, STONE, 32);
+
+        vm.stopPrank();
+        vm.startPrank(PLAYER);
 
         // Test moving partial stack to empty slot
         inventorySystem.moveItems(PLAYER, 0, 1, 16);
@@ -340,10 +417,13 @@ contract InventorySystemTest is TestHelper {
     }
 
     function test_MoveToolToEmptySlot() public {
-        vm.startPrank(PLAYER);
+        vm.startPrank(address(overlaySystem));
 
         // Setup: Add a pickaxe
         inventorySystem.mint(PLAYER, WOODEN_PICKAXE, 1);
+
+        vm.stopPrank();
+        vm.startPrank(PLAYER);
 
         // Test moving tool to empty slot
         inventorySystem.moveItems(PLAYER, 0, 1, 1);
@@ -358,11 +438,14 @@ contract InventorySystemTest is TestHelper {
     }
 
     function test_RevertWhen_PartialSlotSwap() public {
-        vm.startPrank(PLAYER);
+        vm.startPrank(address(overlaySystem));
 
         // Setup: Add two different stacks
         inventorySystem.addToSlot(PLAYER, 0, STONE, 32);
         inventorySystem.addToSlot(PLAYER, 1, DIRT, 16);
+
+        vm.stopPrank();
+        vm.startPrank(PLAYER);
 
         // Try to swap partial stack (should fail)
         vm.expectRevert("Must swap entire slot contents");
@@ -373,10 +456,13 @@ contract InventorySystemTest is TestHelper {
     }
 
     function test_RevertWhen_PartialToolMove() public {
-        vm.startPrank(PLAYER);
+        vm.startPrank(address(overlaySystem));
 
         // Setup: Add a pickaxe
         inventorySystem.mint(PLAYER, WOODEN_PICKAXE, 1);
+
+        vm.stopPrank();
+        vm.startPrank(PLAYER);
 
         // Try to move tool with wrong amount (should fail)
         vm.expectRevert("Insufficient items in source slot");
@@ -386,7 +472,7 @@ contract InventorySystemTest is TestHelper {
     }
 
     function test_RevertWhen_ExceedMaxStackSize() public {
-        vm.startPrank(PLAYER);
+        vm.startPrank(address(overlaySystem));
         
         uint8 slot = 1;
         uint256 amount = 65; // MAX_STACK_SIZE is 64
@@ -398,8 +484,8 @@ contract InventorySystemTest is TestHelper {
     }
 
     function test_RevertWhen_ToolStacking() public {
-        vm.startPrank(PLAYER);
-        
+        vm.startPrank(address(overlaySystem));
+
         uint8 slot = 4;
         
         // First mint a tool
@@ -414,17 +500,23 @@ contract InventorySystemTest is TestHelper {
     }
 
     function test_ToolDurability() public {
-        vm.startPrank(PLAYER);
+        vm.startPrank(address(overlaySystem));
 
         // Test wooden pickaxe durability
         inventorySystem.mint(PLAYER, WOODEN_PICKAXE, 1);
         (, uint256 amount) = inventorySystem.getSlotData(PLAYER, 0);
         assertEq(amount, 1, "Should have 1 wooden pickaxe");
         
+        vm.stopPrank();
+        vm.startPrank(PLAYER);
+
         // Get initial durability
         InventoryItem[] memory contents = inventorySystem.getInventoryContents(PLAYER);
         uint16 initialDurability = contents[0].durability;
         assertEq(initialDurability, MinecraftConstants.WOODEN_PICKAXE_DURABILITY, "Should have full durability initially");
+
+        vm.stopPrank();
+        vm.startPrank(address(craftingSystem));
 
         // Use the tool multiple times
         for (uint i = 0; i < initialDurability - 1; i++) {
@@ -437,30 +529,50 @@ contract InventorySystemTest is TestHelper {
 
         // Use the tool one last time - should break
         assertTrue(inventorySystem.useToolFromSlot(PLAYER, 0, uint8(STONE)), "Should be able to use wooden pickaxe one last time");
+        
+        vm.stopPrank();
+        vm.startPrank(PLAYER);
+
         (uint256 finalItemId, uint256 finalAmount) = inventorySystem.getSlotData(PLAYER, 0);
         assertEq(finalAmount, 0, "Tool should be consumed when durability reaches 0");
         assertEq(finalItemId, 0, "Slot should be empty after tool breaks");
 
         // Test iron pickaxe durability
+        vm.stopPrank();
+        vm.startPrank(address(overlaySystem));
         inventorySystem.mint(PLAYER, IRON_PICKAXE, 1);
+        vm.stopPrank();
+        vm.startPrank(PLAYER);
         contents = inventorySystem.getInventoryContents(PLAYER);
         uint16 ironPickaxeDurability = contents[0].durability;
         assertEq(ironPickaxeDurability, MinecraftConstants.IRON_PICKAXE_DURABILITY, "Iron pickaxe should have correct initial durability");
 
         // Test diamond pickaxe durability
+        vm.stopPrank();
+        vm.startPrank(address(overlaySystem));
         inventorySystem.mint(PLAYER, DIAMOND_PICKAXE, 1);
+        vm.stopPrank();
+        vm.startPrank(PLAYER);
         contents = inventorySystem.getInventoryContents(PLAYER);
         uint16 diamondPickaxeDurability = contents[1].durability;
         assertEq(diamondPickaxeDurability, MinecraftConstants.DIAMOND_PICKAXE_DURABILITY, "Diamond pickaxe should have correct initial durability");
 
         // Test shears durability
+        vm.stopPrank();
+        vm.startPrank(address(overlaySystem));
         inventorySystem.mint(PLAYER, SHEARS, 1);
+        vm.stopPrank();
+        vm.startPrank(PLAYER);
         contents = inventorySystem.getInventoryContents(PLAYER);
         uint16 shearsDurability = contents[2].durability;
         assertEq(shearsDurability, MinecraftConstants.SHEARS_DURABILITY, "Shears should have correct initial durability");
 
         // Test that non-tool items don't have durability
+        vm.stopPrank();
+        vm.startPrank(address(overlaySystem));
         inventorySystem.mint(PLAYER, STONE, 1);
+        vm.stopPrank();
+        vm.startPrank(PLAYER);
         contents = inventorySystem.getInventoryContents(PLAYER);
         assertEq(contents[3].durability, 0, "Non-tool items should have 0 durability");
 
@@ -468,17 +580,24 @@ contract InventorySystemTest is TestHelper {
     }
 
     function test_ToolDurabilityWithInvalidUse() public {
-        vm.startPrank(PLAYER);
+        vm.startPrank(address(overlaySystem));
 
         // Add a wooden pickaxe
         inventorySystem.mint(PLAYER, WOODEN_PICKAXE, 1);
+    
         
         // Try to use the tool on an invalid block type (leaves)
         assertFalse(inventorySystem.useToolFromSlot(PLAYER, 0, uint8(LEAVES)), "Should not be able to use pickaxe on leaves");
         
+        vm.stopPrank();
+        vm.startPrank(PLAYER);
+        
         // Verify durability wasn't affected
         InventoryItem[] memory contents = inventorySystem.getInventoryContents(PLAYER);
         assertEq(contents[0].durability, MinecraftConstants.WOODEN_PICKAXE_DURABILITY, "Durability should not decrease for invalid use");
+
+        vm.stopPrank();
+        vm.startPrank(address(craftingSystem));
 
         // Try to use tool from empty slot
         assertFalse(inventorySystem.useToolFromSlot(PLAYER, 1, uint8(STONE)), "Should not be able to use tool from empty slot");
@@ -526,11 +645,14 @@ contract InventorySystemTest is TestHelper {
     }
 
     function test_MultipleToolInstances() public {
-        vm.startPrank(PLAYER);
+        vm.startPrank(address(overlaySystem));
 
         // Mint two wooden pickaxes
         inventorySystem.mint(PLAYER, WOODEN_PICKAXE, 1);
         inventorySystem.mint(PLAYER, WOODEN_PICKAXE, 1);
+
+        vm.stopPrank();
+        vm.startPrank(PLAYER);
 
         // Get the inventory contents to verify we have two pickaxes with full durability
         InventoryItem[] memory contents = inventorySystem.getInventoryContents(PLAYER);
@@ -546,12 +668,18 @@ contract InventorySystemTest is TestHelper {
                 break;
             }
         }
-        
+
+        vm.stopPrank();
+        vm.startPrank(address(overlaySystem));
+
         // Use first pickaxe until it breaks
         uint8 slot = 0;
         for (uint i = 0; i < initialDurability; i++) {
             assertTrue(inventorySystem.useToolFromSlot(PLAYER, slot, uint8(STONE)), "Should be able to use first pickaxe");
         }
+
+        vm.stopPrank();
+        vm.startPrank(PLAYER);
 
         // Verify first pickaxe is gone
         (uint256 firstSlotItemId, uint256 firstSlotAmount) = inventorySystem.getSlotData(PLAYER, 0);
@@ -564,8 +692,15 @@ contract InventorySystemTest is TestHelper {
         assertEq(contents[0].itemId, secondPickaxeId, "Second pickaxe should have same ID");
         assertEq(contents[0].durability, initialDurability, "Second pickaxe should have full durability");
 
+        vm.stopPrank();
+        vm.startPrank(address(overlaySystem));
+
         // Verify second pickaxe works
         assertTrue(inventorySystem.useToolFromSlot(PLAYER, 1, uint8(STONE)), "Should be able to use second pickaxe");
+
+        vm.stopPrank();
+        vm.startPrank(PLAYER);
+
         contents = inventorySystem.getInventoryContents(PLAYER);
         assertEq(contents[0].durability, initialDurability - 1, "Second pickaxe durability should decrease by 1");
 
@@ -573,11 +708,14 @@ contract InventorySystemTest is TestHelper {
     }
 
     function test_StackSplitting() public {
-        vm.startPrank(PLAYER);
+        vm.startPrank(address(overlaySystem));
 
         // Test 1: Split stack into empty slot
         // Create a stack of 40 stones
         inventorySystem.addToSlot(PLAYER, 0, STONE, 40);
+
+        vm.stopPrank();
+        vm.startPrank(PLAYER);
         
         // Split half (20) into empty slot
         inventorySystem.moveItems(PLAYER, 0, 1, 20);
@@ -587,9 +725,15 @@ contract InventorySystemTest is TestHelper {
         assertEq(inventorySystem.slotCounts(PLAYER, 1), 20, "New slot should have 20 stones");
         assertEq(inventorySystem.inventorySlots(PLAYER, 1), STONE, "New slot should contain stone");
 
+        vm.stopPrank();
+        vm.startPrank(address(overlaySystem));
+
         // Test 2: Split stack into partially filled slot
         // Add 30 stones to slot 2
         inventorySystem.addToSlot(PLAYER, 2, STONE, 30);
+
+        vm.stopPrank();
+        vm.startPrank(PLAYER);
         
         // Try to move 20 stones from slot 0 to slot 2 (should work as 30 + 20 < 63)
         inventorySystem.moveItems(PLAYER, 0, 2, 20);
@@ -597,9 +741,15 @@ contract InventorySystemTest is TestHelper {
         assertEq(inventorySystem.slotCounts(PLAYER, 0), 0, "Original slot should be empty");
         assertEq(inventorySystem.slotCounts(PLAYER, 2), 50, "Target slot should have 50 stones");
 
+        vm.stopPrank();
+        vm.startPrank(address(overlaySystem));
+
         // Test 3: Split stack respecting max stack size
         // Create a stack of 40 stones in slot 3
         inventorySystem.addToSlot(PLAYER, 3, STONE, 40);
+
+        vm.stopPrank();
+        vm.startPrank(PLAYER);
         
         // Try to move 40 stones to slot 2 which already has 50 (should fail due to max stack size)
         vm.expectRevert("Stack size limit exceeded");
@@ -631,12 +781,15 @@ contract InventorySystemTest is TestHelper {
     }
 
     function test_StackSplittingSlotPrecision() public {
-        vm.startPrank(PLAYER);
+        vm.startPrank(address(overlaySystem));
 
         // Setup: Create some empty slots between filled slots to test precision
         inventorySystem.addToSlot(PLAYER, 0, STONE, 40);  // Slot 0: 40 stones
         inventorySystem.addToSlot(PLAYER, 3, DIRT, 10);   // Slot 3: 10 dirt (to ensure empty slots in between)
         inventorySystem.addToSlot(PLAYER, 5, STONE, 20);  // Slot 5: 20 stones
+
+        vm.stopPrank();
+        vm.startPrank(PLAYER);
 
         // Test 1: Split stack to a specific empty slot (slot 2), ensuring it doesn't go to slot 1
         inventorySystem.moveItems(PLAYER, 0, 2, 15);
@@ -666,7 +819,11 @@ contract InventorySystemTest is TestHelper {
         assertEq(inventorySystem.slotCounts(PLAYER, 0), 15, "Slot 0 should have 15 stones remaining");
 
         // Test 3: Attempt to split stack to maximum capacity
+        vm.stopPrank();
+        vm.startPrank(address(overlaySystem));
         inventorySystem.addToSlot(PLAYER, 6, STONE, 60); // Nearly full stack
+        vm.stopPrank();
+        vm.startPrank(PLAYER);
         inventorySystem.moveItems(PLAYER, 0, 6, 3); // Add 3 more to reach 63
         
         // Verify it reached but didn't exceed max stack size
