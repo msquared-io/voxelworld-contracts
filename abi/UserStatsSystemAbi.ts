@@ -114,6 +114,25 @@ export const UserStatsSystemAbi = [
     "anonymous": false,
     "inputs": [
       {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "totalCount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "lastUpdateTimestamp",
+        "type": "uint256"
+      }
+    ],
+    "name": "GlobalCounterUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
         "indexed": true,
         "internalType": "address",
         "name": "user",
@@ -228,6 +247,74 @@ export const UserStatsSystemAbi = [
       {
         "indexed": true,
         "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256[]",
+        "name": "inputTypes",
+        "type": "uint256[]"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256[]",
+        "name": "inputAmounts",
+        "type": "uint256[]"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "outputType",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "outputAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "ItemSwapped",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "from",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "itemType",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "ItemTransferred",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
         "name": "previousOwner",
         "type": "address"
       },
@@ -308,6 +395,21 @@ export const UserStatsSystemAbi = [
       {
         "internalType": "uint256[]",
         "name": "totalMoved",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "totalSwapped",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "totalTransferredOut",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "totalTransferredIn",
         "type": "uint256[]"
       },
       {
@@ -524,6 +626,24 @@ export const UserStatsSystemAbi = [
   },
   {
     "inputs": [],
+    "name": "getGlobalCount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "totalCount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "lastUpdateTimestamp",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "getGlobalInventoryStats",
     "outputs": [
       {
@@ -539,6 +659,21 @@ export const UserStatsSystemAbi = [
       {
         "internalType": "uint256",
         "name": "totalMoved",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalSwapped",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalTransferredOut",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalTransferredIn",
         "type": "uint256"
       },
       {
@@ -736,6 +871,21 @@ export const UserStatsSystemAbi = [
       {
         "internalType": "uint256",
         "name": "totalMoved",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalSwapped",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalTransferredOut",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalTransferredIn",
         "type": "uint256"
       },
       {
@@ -1135,6 +1285,67 @@ export const UserStatsSystemAbi = [
         "internalType": "address",
         "name": "user",
         "type": "address"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "inputTypes",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "inputAmounts",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "uint256",
+        "name": "outputType",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "outputAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "recordItemSwapped",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "from",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "itemType",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "recordItemTransferred",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
       }
     ],
     "name": "recordPlayerUpdate",
@@ -1160,6 +1371,58 @@ export const UserStatsSystemAbi = [
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_craftingSystem",
+        "type": "address"
+      }
+    ],
+    "name": "setCraftingSystem",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_inventorySystem",
+        "type": "address"
+      }
+    ],
+    "name": "setInventorySystem",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_overlaySystem",
+        "type": "address"
+      }
+    ],
+    "name": "setOverlaySystem",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_playerSystem",
+        "type": "address"
+      }
+    ],
+    "name": "setPlayerSystem",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {

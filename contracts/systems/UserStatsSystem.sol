@@ -22,10 +22,18 @@ abstract contract StatsBase is WorldUtils {
 
 // Main contract that implements all functionality
 contract UserStatsSystem is StatsBase, IUserStatsSystem {
-    address public immutable overlaySystem;
-    address public immutable craftingSystem;
-    address public immutable inventorySystem;
-    address public immutable playerSystem;
+    address public overlaySystem;
+    address public craftingSystem;
+    address public inventorySystem;
+    address public playerSystem;
+
+    // Global counter struct
+    struct GlobalCounter {
+        uint256 totalCount;
+        uint256 lastUpdateTimestamp;
+    }
+    
+    GlobalCounter private globalCounter;
 
     // Track all users who have interacted with the system
     address[] private allUsers;
@@ -58,12 +66,21 @@ contract UserStatsSystem is StatsBase, IUserStatsSystem {
         uint256 totalMinted;
         uint256 totalBurned;
         uint256 totalMoved;
+        uint256 totalSwapped;
+        uint256 totalTransferredOut;
+        uint256 totalTransferredIn;
         mapping(uint256 => uint256) craftedItems;
         mapping(uint256 => uint256) mintedItems;
         mapping(uint256 => uint256) burnedItems;
+        mapping(uint256 => uint256) swappedItems;
+        mapping(uint256 => uint256) transferredOutItems;
+        mapping(uint256 => uint256) transferredInItems;
         uint256[] craftedItemTypes;
         uint256[] mintedItemTypes;
         uint256[] burnedItemTypes;
+        uint256[] swappedItemTypes;
+        uint256[] transferredOutItemTypes;
+        uint256[] transferredInItemTypes;
     }
 
     mapping(address => ItemData) private itemData;
@@ -79,6 +96,22 @@ contract UserStatsSystem is StatsBase, IUserStatsSystem {
         overlaySystem = _overlaySystem;
         craftingSystem = _craftingSystem;
         inventorySystem = _inventorySystem;
+        playerSystem = _playerSystem;
+    }
+
+    function setOverlaySystem(address _overlaySystem) external onlyOwner {
+        overlaySystem = _overlaySystem;
+    }
+
+    function setCraftingSystem(address _craftingSystem) external onlyOwner {
+        craftingSystem = _craftingSystem;
+    }
+
+    function setInventorySystem(address _inventorySystem) external onlyOwner {
+        inventorySystem = _inventorySystem;
+    }
+
+    function setPlayerSystem(address _playerSystem) external onlyOwner {
         playerSystem = _playerSystem;
     }
 
@@ -146,13 +179,42 @@ contract UserStatsSystem is StatsBase, IUserStatsSystem {
                 data.burnedItemTypes.push(itemType);
             }
             data.burnedItems[itemType] += amount;
+        } else if (action == IUserStatsSystem.ItemAction.MOVE) {
+            data.totalMoved += amount;
+        } else if (action == IUserStatsSystem.ItemAction.SWAP) {
+            data.totalSwapped += amount;
+            if (data.swappedItems[itemType] == 0) {
+                data.swappedItemTypes.push(itemType);
+            }
+            data.swappedItems[itemType] += amount;
+        } else if (action == IUserStatsSystem.ItemAction.TRANSFER_OUT) {
+            data.totalTransferredOut += amount;
+            if (data.transferredOutItems[itemType] == 0) {
+                data.transferredOutItemTypes.push(itemType);
+            }
+            data.transferredOutItems[itemType] += amount;
+        } else if (action == IUserStatsSystem.ItemAction.TRANSFER_IN) {
+            data.totalTransferredIn += amount;
+            if (data.transferredInItems[itemType] == 0) {
+                data.transferredInItemTypes.push(itemType);
+            }
+            data.transferredInItems[itemType] += amount;
         }
+    }
+
+    event GlobalCounterUpdated(uint256 totalCount, uint256 lastUpdateTimestamp);
+
+    function _incrementGlobalCounter(uint256 amount) private {
+        globalCounter.totalCount += amount;
+        globalCounter.lastUpdateTimestamp = block.timestamp;
+        emit GlobalCounterUpdated(globalCounter.totalCount, globalCounter.lastUpdateTimestamp);
     }
 
     function recordBlockMined(address user, uint8 blockType) external onlyOverlaySystem {
         _addUserIfNew(user, userExists, allUsers);
         _processBlockStats(blockData[user], blockType, true);
         _processBlockStats(globalBlockData, blockType, true);
+        _incrementGlobalCounter(1);
         emit BlockMined(user, blockType);
     }
 
@@ -160,6 +222,7 @@ contract UserStatsSystem is StatsBase, IUserStatsSystem {
         _addUserIfNew(user, userExists, allUsers);
         _processBlockStats(blockData[user], blockType, false);
         _processBlockStats(globalBlockData, blockType, false);
+        _incrementGlobalCounter(1);
         emit BlockPlaced(user, blockType);
     }
 
@@ -167,13 +230,13 @@ contract UserStatsSystem is StatsBase, IUserStatsSystem {
         _addUserIfNew(user, userExists, allUsers);
         playerData[user].totalDistance += distance;
         globalPlayerData.totalDistance += distance;
-        emit DistanceMoved(user, distance);
     }
 
     function recordItemCrafted(address user, uint256 itemType, uint256 amount) external onlyCraftingSystem {
         _addUserIfNew(user, userExists, allUsers);
         _processItemStats(itemData[user], itemType, amount, IUserStatsSystem.ItemAction.CRAFT);
         _processItemStats(globalItemData, itemType, amount, IUserStatsSystem.ItemAction.CRAFT);
+        _incrementGlobalCounter(1);
         emit ItemCrafted(user, itemType, amount);
     }
 
@@ -181,6 +244,7 @@ contract UserStatsSystem is StatsBase, IUserStatsSystem {
         _addUserIfNew(user, userExists, allUsers);
         _processItemStats(itemData[user], itemType, amount, IUserStatsSystem.ItemAction.MINT);
         _processItemStats(globalItemData, itemType, amount, IUserStatsSystem.ItemAction.MINT);
+        _incrementGlobalCounter(1);
         emit ItemMinted(user, itemType, amount);
     }
 
@@ -188,13 +252,15 @@ contract UserStatsSystem is StatsBase, IUserStatsSystem {
         _addUserIfNew(user, userExists, allUsers);
         _processItemStats(itemData[user], itemType, amount, IUserStatsSystem.ItemAction.BURN);
         _processItemStats(globalItemData, itemType, amount, IUserStatsSystem.ItemAction.BURN);
+        _incrementGlobalCounter(1);
         emit ItemBurned(user, itemType, amount);
     }
 
     function recordItemMoved(address user, uint8 fromSlot, uint8 toSlot, uint256 itemType, uint256 amount) external onlyInventorySystem {
         _addUserIfNew(user, userExists, allUsers);
-        itemData[user].totalMoved += amount;
-        globalItemData.totalMoved += amount;
+        _processItemStats(itemData[user], itemType, amount, IUserStatsSystem.ItemAction.MOVE);
+        _processItemStats(globalItemData, itemType, amount, IUserStatsSystem.ItemAction.MOVE);
+        _incrementGlobalCounter(1);
         emit ItemMoved(user, fromSlot, toSlot, itemType, amount);
     }
 
@@ -202,9 +268,44 @@ contract UserStatsSystem is StatsBase, IUserStatsSystem {
         _addUserIfNew(user, userExists, allUsers);
         playerData[user].totalPlayerUpdates++;
         globalPlayerData.totalPlayerUpdates++;
+        _incrementGlobalCounter(1);
         emit PlayerUpdated(user);
     }
 
+    function recordItemSwapped(
+        address user,
+        uint256[] calldata inputTypes,
+        uint256[] calldata inputAmounts,
+        uint256 outputType,
+        uint256 outputAmount
+    ) external onlyInventorySystem {
+        _addUserIfNew(user, userExists, allUsers);
+        _processItemStats(itemData[user], outputType, outputAmount, IUserStatsSystem.ItemAction.SWAP);
+        _processItemStats(globalItemData, outputType, outputAmount, IUserStatsSystem.ItemAction.SWAP);
+        _incrementGlobalCounter(1);
+        emit ItemSwapped(user, inputTypes, inputAmounts, outputType, outputAmount);
+    }
+
+    function recordItemTransferred(
+        address from,
+        address to,
+        uint256 itemType,
+        uint256 amount
+    ) external onlyInventorySystem {
+        _addUserIfNew(from, userExists, allUsers);
+        _addUserIfNew(to, userExists, allUsers);
+        
+        _processItemStats(itemData[from], itemType, amount, IUserStatsSystem.ItemAction.TRANSFER_OUT);
+        _processItemStats(globalItemData, itemType, amount, IUserStatsSystem.ItemAction.TRANSFER_OUT);
+        
+        _processItemStats(itemData[to], itemType, amount, IUserStatsSystem.ItemAction.TRANSFER_IN);
+        _processItemStats(globalItemData, itemType, amount, IUserStatsSystem.ItemAction.TRANSFER_IN);
+        
+        _incrementGlobalCounter(2);
+        emit ItemTransferred(from, to, itemType, amount);
+    }
+
+    // Internal functions
     function _getBlockStatsData(BlockData storage data) private view returns (
         uint256 totalMined,
         uint256 totalPlaced,
@@ -238,22 +339,37 @@ contract UserStatsSystem is StatsBase, IUserStatsSystem {
         uint256 totalMinted,
         uint256 totalBurned,
         uint256 totalMoved,
+        uint256 totalSwapped,
+        uint256 totalTransferredOut,
+        uint256 totalTransferredIn,
         IUserStatsSystem.ItemTypeCount[] memory craftedItems,
         IUserStatsSystem.ItemTypeCount[] memory mintedItems,
-        IUserStatsSystem.ItemTypeCount[] memory burnedItems
+        IUserStatsSystem.ItemTypeCount[] memory burnedItems,
+        IUserStatsSystem.ItemTypeCount[] memory swappedItems,
+        IUserStatsSystem.ItemTypeCount[] memory transferredOutItems,
+        IUserStatsSystem.ItemTypeCount[] memory transferredInItems
     ) {
         totalCrafted = data.totalCrafted;
         totalMinted = data.totalMinted;
         totalBurned = data.totalBurned;
         totalMoved = data.totalMoved;
+        totalSwapped = data.totalSwapped;
+        totalTransferredOut = data.totalTransferredOut;
+        totalTransferredIn = data.totalTransferredIn;
 
         uint256 craftedLength = data.craftedItemTypes.length;
         uint256 mintedLength = data.mintedItemTypes.length;
         uint256 burnedLength = data.burnedItemTypes.length;
+        uint256 swappedLength = data.swappedItemTypes.length;
+        uint256 transferredOutLength = data.transferredOutItemTypes.length;
+        uint256 transferredInLength = data.transferredInItemTypes.length;
 
         craftedItems = new IUserStatsSystem.ItemTypeCount[](craftedLength);
         mintedItems = new IUserStatsSystem.ItemTypeCount[](mintedLength);
         burnedItems = new IUserStatsSystem.ItemTypeCount[](burnedLength);
+        swappedItems = new IUserStatsSystem.ItemTypeCount[](swappedLength);
+        transferredOutItems = new IUserStatsSystem.ItemTypeCount[](transferredOutLength);
+        transferredInItems = new IUserStatsSystem.ItemTypeCount[](transferredInLength);
 
         for (uint256 i = 0; i < craftedLength;) {
             uint256 itemType = data.craftedItemTypes[i];
@@ -270,6 +386,24 @@ contract UserStatsSystem is StatsBase, IUserStatsSystem {
         for (uint256 i = 0; i < burnedLength;) {
             uint256 itemType = data.burnedItemTypes[i];
             burnedItems[i] = IUserStatsSystem.ItemTypeCount(itemType, data.burnedItems[itemType]);
+            unchecked { ++i; }
+        }
+
+        for (uint256 i = 0; i < swappedLength;) {
+            uint256 itemType = data.swappedItemTypes[i];
+            swappedItems[i] = IUserStatsSystem.ItemTypeCount(itemType, data.swappedItems[itemType]);
+            unchecked { ++i; }
+        }
+
+        for (uint256 i = 0; i < transferredOutLength;) {
+            uint256 itemType = data.transferredOutItemTypes[i];
+            transferredOutItems[i] = IUserStatsSystem.ItemTypeCount(itemType, data.transferredOutItems[itemType]);
+            unchecked { ++i; }
+        }
+
+        for (uint256 i = 0; i < transferredInLength;) {
+            uint256 itemType = data.transferredInItemTypes[i];
+            transferredInItems[i] = IUserStatsSystem.ItemTypeCount(itemType, data.transferredInItems[itemType]);
             unchecked { ++i; }
         }
     }
@@ -310,7 +444,16 @@ contract UserStatsSystem is StatsBase, IUserStatsSystem {
         (totalMined, totalPlaced, minedBlocks, placedBlocks) = _getBlockStatsData(blockData[user]);
         
         // Get item stats and only use what we need
-        (totalCrafted,,,, craftedItems,,) = _getItemStatsData(itemData[user]);
+        uint256 totalSwapped;
+        uint256 totalTransferredOut;
+        uint256 totalTransferredIn;
+        IUserStatsSystem.ItemTypeCount[] memory mintedItems;
+        IUserStatsSystem.ItemTypeCount[] memory burnedItems;
+        IUserStatsSystem.ItemTypeCount[] memory swappedItems;
+        IUserStatsSystem.ItemTypeCount[] memory transferredOutItems;
+        IUserStatsSystem.ItemTypeCount[] memory transferredInItems;
+        
+        (totalCrafted,,,,,,, craftedItems, mintedItems, burnedItems, swappedItems, transferredOutItems, transferredInItems) = _getItemStatsData(itemData[user]);
         
         uint256 minedLength = minedBlocks.length;
         uint256 placedLength = placedBlocks.length;
@@ -364,6 +507,9 @@ contract UserStatsSystem is StatsBase, IUserStatsSystem {
         uint256 totalMinted,
         uint256 totalBurned,
         uint256 totalMoved,
+        uint256 totalSwapped,
+        uint256 totalTransferredOut,
+        uint256 totalTransferredIn,
         IUserStatsSystem.ItemTypeCount[] memory mintedItems,
         IUserStatsSystem.ItemTypeCount[] memory burnedItems,
         uint256[] memory mintedItemTypes,
@@ -372,7 +518,14 @@ contract UserStatsSystem is StatsBase, IUserStatsSystem {
         uint256[] memory burnedCounts
     ) {
         // Get item stats and only use what we need
-        (,totalMinted, totalBurned, totalMoved,, mintedItems, burnedItems) = _getItemStatsData(itemData[user]);
+        uint256 totalSwappedItems;
+        uint256 totalTransferredOutItems;
+        uint256 totalTransferredInItems;
+        IUserStatsSystem.ItemTypeCount[] memory swappedItems;
+        IUserStatsSystem.ItemTypeCount[] memory transferredOutItems;
+        IUserStatsSystem.ItemTypeCount[] memory transferredInItems;
+        
+        (,totalMinted, totalBurned, totalMoved, totalSwappedItems, totalTransferredOutItems, totalTransferredInItems,, mintedItems, burnedItems, swappedItems, transferredOutItems, transferredInItems) = _getItemStatsData(itemData[user]);
         
         uint256 mintedLength = mintedItems.length;
         uint256 burnedLength = burnedItems.length;
@@ -393,6 +546,10 @@ contract UserStatsSystem is StatsBase, IUserStatsSystem {
             burnedCounts[i] = burnedItems[i].count;
             unchecked { ++i; }
         }
+        
+        totalSwapped = totalSwappedItems;
+        totalTransferredOut = totalTransferredOutItems;
+        totalTransferredIn = totalTransferredInItems;
     }
 
     function getAllUsers(uint256 offset, uint256 limit) external view returns (address[] memory users) {
@@ -423,6 +580,9 @@ contract UserStatsSystem is StatsBase, IUserStatsSystem {
         uint256 totalMinted,
         uint256 totalBurned,
         uint256 totalMoved,
+        uint256 totalSwapped,
+        uint256 totalTransferredOut,
+        uint256 totalTransferredIn,
         IUserStatsSystem.ItemTypeCount[] memory mintedItems,
         IUserStatsSystem.ItemTypeCount[] memory burnedItems,
         uint256[] memory mintedItemTypes,
@@ -430,7 +590,13 @@ contract UserStatsSystem is StatsBase, IUserStatsSystem {
         uint256[] memory burnedItemTypes,
         uint256[] memory burnedCounts
     ) {
-        return _getUserInventoryStats(user);
+        uint256 totalSwappedItems;
+        uint256 totalTransferredOutItems;
+        uint256 totalTransferredInItems;
+        (totalMinted, totalBurned, totalMoved, totalSwappedItems, totalTransferredOutItems, totalTransferredInItems, mintedItems, burnedItems, mintedItemTypes, mintedCounts, burnedItemTypes, burnedCounts) = _getUserInventoryStats(user);
+        totalSwapped = totalSwappedItems;
+        totalTransferredOut = totalTransferredOutItems;
+        totalTransferredIn = totalTransferredInItems;
     }
 
     function getAllUserStats(uint256 offset, uint256 limit) external view returns (
@@ -495,6 +661,9 @@ contract UserStatsSystem is StatsBase, IUserStatsSystem {
         uint256[] memory totalMinted,
         uint256[] memory totalBurned,
         uint256[] memory totalMoved,
+        uint256[] memory totalSwapped,
+        uint256[] memory totalTransferredOut,
+        uint256[] memory totalTransferredIn,
         ItemTypeCount[][] memory mintedItems,
         ItemTypeCount[][] memory burnedItems,
         uint256[][] memory mintedItemTypes,
@@ -508,6 +677,9 @@ contract UserStatsSystem is StatsBase, IUserStatsSystem {
         totalMinted = new uint256[](length);
         totalBurned = new uint256[](length);
         totalMoved = new uint256[](length);
+        totalSwapped = new uint256[](length);
+        totalTransferredOut = new uint256[](length);
+        totalTransferredIn = new uint256[](length);
         mintedItems = new ItemTypeCount[][](length);
         burnedItems = new ItemTypeCount[][](length);
         mintedItemTypes = new uint256[][](length);
@@ -520,6 +692,9 @@ contract UserStatsSystem is StatsBase, IUserStatsSystem {
                 totalMinted[i],
                 totalBurned[i],
                 totalMoved[i],
+                totalSwapped[i],
+                totalTransferredOut[i],
+                totalTransferredIn[i],
                 mintedItems[i],
                 burnedItems[i],
                 mintedItemTypes[i],
@@ -548,7 +723,19 @@ contract UserStatsSystem is StatsBase, IUserStatsSystem {
         uint256[] memory craftedCounts
     ) {
         (totalMined, totalPlaced, minedBlocks, placedBlocks) = _getBlockStatsData(globalBlockData);
-        (totalCrafted,,,, craftedItems,,) = _getItemStatsData(globalItemData);
+        
+        // Get item stats and only use what we need
+        uint256 totalSwapped;
+        uint256 totalTransferredOut;
+        uint256 totalTransferredIn;
+        IUserStatsSystem.ItemTypeCount[] memory mintedItems;
+        IUserStatsSystem.ItemTypeCount[] memory burnedItems;
+        IUserStatsSystem.ItemTypeCount[] memory swappedItems;
+        IUserStatsSystem.ItemTypeCount[] memory transferredOutItems;
+        IUserStatsSystem.ItemTypeCount[] memory transferredInItems;
+        
+        (totalCrafted,,,,,,, craftedItems, mintedItems, burnedItems, swappedItems, transferredOutItems, transferredInItems) = _getItemStatsData(globalItemData);
+        
         totalDistance = globalPlayerData.totalDistance;
         totalPlayerUpdates = globalPlayerData.totalPlayerUpdates;
 
@@ -586,6 +773,9 @@ contract UserStatsSystem is StatsBase, IUserStatsSystem {
         uint256 totalMinted,
         uint256 totalBurned,
         uint256 totalMoved,
+        uint256 totalSwapped,
+        uint256 totalTransferredOut,
+        uint256 totalTransferredIn,
         ItemTypeCount[] memory mintedItems,
         ItemTypeCount[] memory burnedItems,
         uint256[] memory mintedItemTypes,
@@ -593,7 +783,14 @@ contract UserStatsSystem is StatsBase, IUserStatsSystem {
         uint256[] memory burnedItemTypes,
         uint256[] memory burnedCounts
     ) {
-        (,totalMinted, totalBurned, totalMoved,, mintedItems, burnedItems) = _getItemStatsData(globalItemData);
+        uint256 totalSwappedItems;
+        uint256 totalTransferredOutItems;
+        uint256 totalTransferredInItems;
+        ItemTypeCount[] memory swappedItems;
+        ItemTypeCount[] memory transferredOutItems;
+        ItemTypeCount[] memory transferredInItems;
+        
+        (,totalMinted, totalBurned, totalMoved, totalSwappedItems, totalTransferredOutItems, totalTransferredInItems,, mintedItems, burnedItems, swappedItems, transferredOutItems, transferredInItems) = _getItemStatsData(globalItemData);
 
         uint256 mintedLength = mintedItems.length;
         uint256 burnedLength = burnedItems.length;
@@ -614,5 +811,14 @@ contract UserStatsSystem is StatsBase, IUserStatsSystem {
             burnedCounts[i] = burnedItems[i].count;
             unchecked { ++i; }
         }
+        
+        totalSwapped = totalSwappedItems;
+        totalTransferredOut = totalTransferredOutItems;
+        totalTransferredIn = totalTransferredInItems;
+    }
+
+    // New getter function for global counter
+    function getGlobalCount() external view returns (uint256 totalCount, uint256 lastUpdateTimestamp) {
+        return (globalCounter.totalCount, globalCounter.lastUpdateTimestamp);
     }
 } 

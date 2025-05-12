@@ -6,9 +6,10 @@
     "test": "forge test --via-ir",
     "test:verbose": "npm run test -- -vvv",
     "deploy": "npm run compile && npx hardhat run ignition/scripts/deploy.ts --network somnia",
-    "generate": "ts-node scripts/uploader.ts --minX -16 --minZ -16 --maxX 16 --maxZ 16 --maxY 8 --originX -351 --originZ 246",
+    "generate": "ts-node scripts/uploader.ts --minX -32 --minZ -32 --maxX 32 --maxZ 32 --maxY 16 --originX -351 --originZ 246",
     "deploy-etherbase": "npx hardhat run ignition/scripts/deploy-etherbase.ts --network somnia",
-    "compile": "rm -rf ignition/deployments && npx hardhat compile"
+    "compile": "rm -rf ignition/deployments && npx hardhat compile",
+    "add-recipe": "npx hardhat run scripts/addDirtToWoodRecipe.ts --network somnia"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ignition": "^0.15.10",

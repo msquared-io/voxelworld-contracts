@@ -12,8 +12,8 @@ contract OverlaySystem is WorldUtils, IOverlaySystem {
     using MinecraftConstants for uint8;
     using MinecraftConstants for uint256;
 
-    IChunkSystem public immutable chunkSystem;
-    IInventorySystem public immutable inventorySystem;
+    IChunkSystem public chunkSystem;
+    IInventorySystem public inventorySystem;
     IUserStatsSystem public userStatsSystem;
     
     // Overlay mapping to store delta updates
@@ -44,6 +44,16 @@ contract OverlaySystem is WorldUtils, IOverlaySystem {
     function setUserStatsSystem(address _userStatsSystem) external onlyOwner {
         if (_userStatsSystem == address(0)) revert("Invalid address");
         userStatsSystem = IUserStatsSystem(_userStatsSystem);
+    }
+
+    function setChunkSystem(address _chunkSystem) external onlyOwner {
+        if (_chunkSystem == address(0)) revert("Invalid address");
+        chunkSystem = IChunkSystem(_chunkSystem);
+    }
+
+    function setInventorySystem(address _inventorySystem) external onlyOwner {
+        if (_inventorySystem == address(0)) revert("Invalid address");
+        inventorySystem = IInventorySystem(_inventorySystem);
     }
 
     function _packChunkStorageKey(

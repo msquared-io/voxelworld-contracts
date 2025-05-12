@@ -51,7 +51,8 @@ const args = parseArgs()
 
 // Blockchain / contract config
 const contractConfig = {
-  contractAddress: ChunkSystemAddress,
+  // contractAddress: ChunkSystemAddress,
+  contractAddress: "",
   providerUrl: args.provider,
   privateKey:
     args.privateKey ||
@@ -80,6 +81,7 @@ class VoxelUploader {
   private account: ReturnType<typeof privateKeyToAccount>
   private currentNonce = 0
   private chunkExistsCache: Map<string, boolean> = new Map() // Cache for chunk existence checks
+  private chunkHasDataCache: Map<string, boolean> = new Map() // Cache for chunks that have data
   private limit: ReturnType<typeof pLimit> // Concurrency limiter
   private pendingTxs: Promise<unknown>[] = [] // Track pending transactions
   private txCount = 0 // Counter for transactions
@@ -377,6 +379,40 @@ class VoxelUploader {
   }
 
   /**
+   * Check if a chunk has data (non-empty RLE data)
+   */
+  private async chunkHasData(chunkX: number, chunkY: number, chunkZ: number): Promise<boolean> {
+    const chunkKey = this.getChunkKey(chunkX, chunkY, chunkZ)
+
+    // Check cache first
+    if (this.chunkHasDataCache.has(chunkKey)) {
+      return this.chunkHasDataCache.get(chunkKey)!
+    }
+
+    try {
+      // Check if chunk exists first
+      const exists = await this.contract.read.chunkExists([chunkX, chunkY, chunkZ])
+      if (!exists) {
+        this.chunkHasDataCache.set(chunkKey, false)
+        return false
+      }
+
+      // Get the chunk data
+      const data = await this.contract.read.getChunkData([chunkX, chunkY, chunkZ])
+      
+      // Empty chunk has RLE data of [0x10, 0x00, 0x00] (4096 air blocks)
+      const hasData = data !== "0x100000"
+      
+      // Update cache
+      this.chunkHasDataCache.set(chunkKey, hasData)
+      return hasData
+    } catch (error) {
+      console.error(`Error checking chunk data (${chunkX}, ${chunkY}, ${chunkZ}):`, error)
+      return false
+    }
+  }
+
+  /**
    * Process chunk data for a specific position concurrently
    */
   private async processChunk(
@@ -391,6 +427,13 @@ class VoxelUploader {
     >,
   ) {
     return this.limit(async () => {
+      // Check if chunk already has data
+      const hasData = await this.chunkHasData(chunkX, chunkY, chunkZ)
+      if (hasData) {
+        console.log(`Skipping chunk (${chunkX}, ${chunkY}, ${chunkZ}) - already has data`)
+        return { uploaded: false, empty: false }
+      }
+
       // Get the column key (using data coordinates for lookup)
       const columnKey = `${dataChunkX},${dataChunkZ}`
 
@@ -513,7 +556,7 @@ class VoxelUploader {
 
     // Track statistics
     let chunksUploaded = 0
-    const chunksSkipped = 0
+    let chunksSkipped = 0 // Changed from const to let
     const startTime = Date.now()
     const chunkPromises: Promise<{ uploaded: boolean; empty: boolean }>[] = []
 
@@ -570,7 +613,13 @@ class VoxelUploader {
       const results = await Promise.all(batchPromises)
 
       // Update statistics
-      chunksUploaded += results.filter((r) => r.uploaded).length
+      for (const result of results) {
+        if (result.uploaded) {
+          chunksUploaded++
+        } else {
+          chunksSkipped++
+        }
+      }
 
       // Display progress
       processedChunks += batch.length

@@ -355,6 +355,9 @@ contract UserStatsSystemTest is TestHelper {
             uint256 totalMinted,
             uint256 totalBurned,
             uint256 totalMoved,
+            uint256 totalSwapped,
+            uint256 totalTransferredOut,
+            uint256 totalTransferredIn,
             IUserStatsSystem.ItemTypeCount[] memory mintedItems,
             IUserStatsSystem.ItemTypeCount[] memory burnedItems,
             uint256[] memory mintedItemTypes,
@@ -366,6 +369,9 @@ contract UserStatsSystemTest is TestHelper {
         assertEq(totalMinted, 10, "Total minted should be 10");
         assertEq(totalBurned, 3, "Total burned should be 3");
         assertEq(totalMoved, 5, "Total moved should be 5");
+        assertEq(totalSwapped, 0, "Total swapped should be 0");
+        assertEq(totalTransferredOut, 0, "Total transferred out should be 0");
+        assertEq(totalTransferredIn, 0, "Total transferred in should be 0");
         
         // Verify minted items
         assertEq(mintedItems.length, 2, "Should have 2 types of items minted");
@@ -430,6 +436,17 @@ contract UserStatsSystemTest is TestHelper {
         vm.expectRevert("Only InventorySystem can call this");
         userStatsSystem.recordItemMoved(PLAYER, 0, 1, STONE, 1);
         
+        uint256[] memory inputTypes = new uint256[](1);
+        uint256[] memory inputAmounts = new uint256[](1);
+        inputTypes[0] = IRON_ORE;
+        inputAmounts[0] = 1;
+        
+        vm.expectRevert("Only InventorySystem can call this");
+        userStatsSystem.recordItemSwapped(PLAYER, inputTypes, inputAmounts, IRON_INGOT, 1);
+        
+        vm.expectRevert("Only InventorySystem can call this");
+        userStatsSystem.recordItemTransferred(PLAYER, PLAYER2, STONE, 1);
+        
         vm.stopPrank();
     }
 
@@ -451,6 +468,9 @@ contract UserStatsSystemTest is TestHelper {
             uint256[] memory totalMinted,
             uint256[] memory totalBurned,
             uint256[] memory totalMoved,
+            uint256[] memory totalSwapped,
+            uint256[] memory totalTransferredOut,
+            uint256[] memory totalTransferredIn,
             IUserStatsSystem.ItemTypeCount[][] memory mintedItems,
             IUserStatsSystem.ItemTypeCount[][] memory burnedItems,
             uint256[][] memory mintedItemTypes,
@@ -462,6 +482,9 @@ contract UserStatsSystemTest is TestHelper {
         assertEq(totalMinted.length, 2, "Should have 2 users' minted totals");
         assertEq(totalBurned.length, 2, "Should have 2 users' burned totals");
         assertEq(totalMoved.length, 2, "Should have 2 users' moved totals");
+        assertEq(totalSwapped.length, 2, "Should have 2 users' swapped totals");
+        assertEq(totalTransferredOut.length, 2, "Should have 2 users' transferred out totals");
+        assertEq(totalTransferredIn.length, 2, "Should have 2 users' transferred in totals");
         assertEq(mintedItems.length, 2, "Should have 2 users' minted items");
         assertEq(burnedItems.length, 2, "Should have 2 users' burned items");
         
@@ -469,6 +492,9 @@ contract UserStatsSystemTest is TestHelper {
         assertEq(totalMinted[0], 5, "PLAYER total minted should be 5");
         assertEq(totalBurned[0], 2, "PLAYER total burned should be 2");
         assertEq(totalMoved[0], 3, "PLAYER total moved should be 3");
+        assertEq(totalSwapped[0], 0, "PLAYER total swapped should be 0");
+        assertEq(totalTransferredOut[0], 0, "PLAYER total transferred out should be 0");
+        assertEq(totalTransferredIn[0], 0, "PLAYER total transferred in should be 0");
         assertEq(mintedItems[0].length, 1, "PLAYER should have 1 type of minted item");
         assertEq(mintedItems[0][0].itemType, STONE, "PLAYER minted item should be STONE");
         assertEq(mintedItems[0][0].count, 5, "PLAYER minted STONE count should be 5");
@@ -480,6 +506,9 @@ contract UserStatsSystemTest is TestHelper {
         assertEq(totalMinted[1], 3, "PLAYER2 total minted should be 3");
         assertEq(totalBurned[1], 1, "PLAYER2 total burned should be 1");
         assertEq(totalMoved[1], 2, "PLAYER2 total moved should be 2");
+        assertEq(totalSwapped[1], 0, "PLAYER2 total swapped should be 0");
+        assertEq(totalTransferredOut[1], 0, "PLAYER2 total transferred out should be 0");
+        assertEq(totalTransferredIn[1], 0, "PLAYER2 total transferred in should be 0");
         assertEq(mintedItems[1].length, 1, "PLAYER2 should have 1 type of minted item");
         assertEq(mintedItems[1][0].itemType, IRON_ORE, "PLAYER2 minted item should be IRON_ORE");
         assertEq(mintedItems[1][0].count, 3, "PLAYER2 minted IRON_ORE count should be 3");
@@ -492,6 +521,9 @@ contract UserStatsSystemTest is TestHelper {
             totalMinted,
             totalBurned,
             totalMoved,
+            totalSwapped,
+            totalTransferredOut,
+            totalTransferredIn,
             mintedItems,
             burnedItems,
             mintedItemTypes,
@@ -504,12 +536,18 @@ contract UserStatsSystemTest is TestHelper {
         assertEq(totalMinted[0], 3, "PLAYER2 total minted should be 3");
         assertEq(totalBurned[0], 1, "PLAYER2 total burned should be 1");
         assertEq(totalMoved[0], 2, "PLAYER2 total moved should be 2");
+        assertEq(totalSwapped[0], 0, "PLAYER2 total swapped should be 0");
+        assertEq(totalTransferredOut[0], 0, "PLAYER2 total transferred out should be 0");
+        assertEq(totalTransferredIn[0], 0, "PLAYER2 total transferred in should be 0");
         
         // Test offset beyond length
         (
             totalMinted,
             totalBurned,
             totalMoved,
+            totalSwapped,
+            totalTransferredOut,
+            totalTransferredIn,
             mintedItems,
             burnedItems,
             mintedItemTypes,
@@ -641,6 +679,9 @@ contract UserStatsSystemTest is TestHelper {
             uint256 totalMinted,
             uint256 totalBurned,
             uint256 totalMoved,
+            uint256 totalSwapped,
+            uint256 totalTransferredOut,
+            uint256 totalTransferredIn,
             IUserStatsSystem.ItemTypeCount[] memory mintedItems,
             IUserStatsSystem.ItemTypeCount[] memory burnedItems,
             uint256[] memory mintedItemTypes,
@@ -653,6 +694,9 @@ contract UserStatsSystemTest is TestHelper {
         assertEq(totalMinted, 11, "Global total minted should be 11");
         assertEq(totalBurned, 3, "Global total burned should be 3");
         assertEq(totalMoved, 5, "Global total moved should be 5");
+        assertEq(totalSwapped, 0, "Global total swapped should be 0");
+        assertEq(totalTransferredOut, 0, "Global total transferred out should be 0");
+        assertEq(totalTransferredIn, 0, "Global total transferred in should be 0");
         
         // Verify minted items
         assertEq(mintedItems.length, 3, "Should have 3 types of items minted globally");
@@ -779,6 +823,147 @@ contract UserStatsSystemTest is TestHelper {
         
         vm.expectRevert("Only PlayerSystem can call this");
         userStatsSystem.recordPlayerUpdate(PLAYER);
+        
+        vm.stopPrank();
+    }
+
+    function testRecordItemSwapped() public {
+        vm.startPrank(FAKE_INVENTORY);
+        
+        // Prepare swap data
+        uint256[] memory inputTypes = new uint256[](2);
+        uint256[] memory inputAmounts = new uint256[](2);
+        inputTypes[0] = IRON_ORE;
+        inputTypes[1] = COAL;
+        inputAmounts[0] = 1;
+        inputAmounts[1] = 1;
+        uint256 outputType = IRON_INGOT;
+        uint256 outputAmount = 1;
+        
+        // Record swaps
+        userStatsSystem.recordItemSwapped(PLAYER, inputTypes, inputAmounts, outputType, outputAmount);
+        userStatsSystem.recordItemSwapped(PLAYER, inputTypes, inputAmounts, outputType, outputAmount);
+        
+        // Different output type
+        uint256[] memory goldInputTypes = new uint256[](2);
+        uint256[] memory goldInputAmounts = new uint256[](2);
+        goldInputTypes[0] = GOLD_ORE;
+        goldInputTypes[1] = COAL;
+        goldInputAmounts[0] = 1;
+        goldInputAmounts[1] = 1;
+        uint256 goldOutputType = GOLD_INGOT;
+        uint256 goldOutputAmount = 1;
+        
+        userStatsSystem.recordItemSwapped(PLAYER, goldInputTypes, goldInputAmounts, goldOutputType, goldOutputAmount);
+        
+        // Get user inventory stats
+        (
+            ,  // totalMinted
+            ,  // totalBurned
+            ,  // totalMoved
+            uint256 totalSwapped,
+            ,  // totalTransferredOut
+            ,  // totalTransferredIn
+            ,  // mintedItems
+            ,  // burnedItems
+            ,  // mintedItemTypes
+            ,  // mintedCounts
+            ,  // burnedItemTypes
+            // burnedCounts
+        ) = userStatsSystem.getUserInventoryStats(PLAYER);
+        
+        // Verify stats
+        assertEq(totalSwapped, 3, "User total swapped should be 3");
+        
+        // Get global inventory stats
+        (
+            ,  // totalMinted
+            ,  // totalBurned
+            ,  // totalMoved
+            uint256 globalTotalSwapped,
+            ,  // totalTransferredOut
+            ,  // totalTransferredIn
+            ,  // mintedItems
+            ,  // burnedItems
+            ,  // mintedItemTypes
+            ,  // mintedCounts
+            ,  // burnedItemTypes
+            // burnedCounts
+        ) = userStatsSystem.getGlobalInventoryStats();
+        
+        // Verify global stats
+        assertEq(globalTotalSwapped, 3, "Global total swapped should be 3");
+        
+        vm.stopPrank();
+    }
+    
+    function testRecordItemTransferred() public {
+        vm.startPrank(FAKE_INVENTORY);
+        
+        // Record transfers
+        userStatsSystem.recordItemTransferred(PLAYER, PLAYER2, STONE, 5);
+        userStatsSystem.recordItemTransferred(PLAYER, PLAYER2, DIRT, 3);
+        userStatsSystem.recordItemTransferred(PLAYER2, PLAYER, IRON_ORE, 2);
+        
+        // Get user inventory stats for PLAYER (sender)
+        (
+            ,  // totalMinted
+            ,  // totalBurned
+            ,  // totalMoved
+            ,  // totalSwapped
+            uint256 totalTransferredOut,
+            uint256 totalTransferredIn,
+            ,  // mintedItems
+            ,  // burnedItems
+            ,  // mintedItemTypes
+            ,  // mintedCounts
+            ,  // burnedItemTypes
+            // burnedCounts
+        ) = userStatsSystem.getUserInventoryStats(PLAYER);
+        
+        // Verify PLAYER stats
+        assertEq(totalTransferredOut, 8, "PLAYER transferred out should be 8");
+        assertEq(totalTransferredIn, 2, "PLAYER transferred in should be 2");
+        
+        // Get user inventory stats for PLAYER2 (receiver)
+        (
+            ,  // totalMinted
+            ,  // totalBurned
+            ,  // totalMoved
+            ,  // totalSwapped
+            uint256 player2TransferredOut,
+            uint256 player2TransferredIn,
+            ,  // mintedItems
+            ,  // burnedItems
+            ,  // mintedItemTypes
+            ,  // mintedCounts
+            ,  // burnedItemTypes
+            // burnedCounts
+        ) = userStatsSystem.getUserInventoryStats(PLAYER2);
+        
+        // Verify PLAYER2 stats
+        assertEq(player2TransferredOut, 2, "PLAYER2 transferred out should be 2");
+        assertEq(player2TransferredIn, 8, "PLAYER2 transferred in should be 8");
+        
+        // Get global inventory stats
+        (
+            ,  // totalMinted
+            ,  // totalBurned
+            ,  // totalMoved
+            ,  // totalSwapped
+            uint256 globalTransferredOut,
+            uint256 globalTransferredIn,
+            ,  // mintedItems
+            ,  // burnedItems
+            ,  // mintedItemTypes
+            ,  // mintedCounts
+            ,  // burnedItemTypes
+            // burnedCounts
+        ) = userStatsSystem.getGlobalInventoryStats();
+        
+        // Verify global stats
+        assertEq(globalTransferredOut, 10, "Global transferred out should be 10");
+        assertEq(globalTransferredIn, 10, "Global transferred in should be 10");
         
         vm.stopPrank();
     }

@@ -157,6 +157,31 @@ export const OverlaySystemAbi = [
     "anonymous": false,
     "inputs": [
       {
+        "indexed": false,
+        "internalType": "int32",
+        "name": "chunkX",
+        "type": "int32"
+      },
+      {
+        "indexed": false,
+        "internalType": "int32",
+        "name": "chunkY",
+        "type": "int32"
+      },
+      {
+        "indexed": false,
+        "internalType": "int32",
+        "name": "chunkZ",
+        "type": "int32"
+      }
+    ],
+    "name": "ChunkOverlayWiped",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
         "indexed": true,
         "internalType": "address",
         "name": "previousOwner",
@@ -472,6 +497,29 @@ export const OverlaySystemAbi = [
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "int32",
+        "name": "chunkX",
+        "type": "int32"
+      },
+      {
+        "internalType": "int32",
+        "name": "chunkY",
+        "type": "int32"
+      },
+      {
+        "internalType": "int32",
+        "name": "chunkZ",
+        "type": "int32"
+      }
+    ],
+    "name": "wipeChunkOverlay",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   }
 ] as const;

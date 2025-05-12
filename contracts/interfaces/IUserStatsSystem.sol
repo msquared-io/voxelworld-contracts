@@ -11,9 +11,11 @@ interface IUserStatsSystem {
     event ItemBurned(address indexed user, uint256 itemType, uint256 amount);
     event ItemMoved(address indexed user, uint8 fromSlot, uint8 toSlot, uint256 itemType, uint256 amount);
     event PlayerUpdated(address indexed user);
+    event ItemSwapped(address indexed user, uint256[] inputTypes, uint256[] inputAmounts, uint256 outputType, uint256 outputAmount);
+    event ItemTransferred(address indexed from, address indexed to, uint256 itemType, uint256 amount);
 
     // Enums
-    enum ItemAction { CRAFT, MINT, BURN }
+    enum ItemAction { CRAFT, MINT, BURN, MOVE, SWAP, TRANSFER_OUT, TRANSFER_IN }
 
     // Structs
     struct BlockTypeCount {
@@ -35,18 +37,28 @@ interface IUserStatsSystem {
         uint256 totalMinted;
         uint256 totalBurned;
         uint256 totalMoved;
+        uint256 totalSwapped;
+        uint256 totalTransferredOut;
+        uint256 totalTransferredIn;
+        uint256 totalPlayerUpdates;
         // Arrays for easy iteration over all types
         BlockTypeCount[] minedBlocks;
         BlockTypeCount[] placedBlocks;
         ItemTypeCount[] craftedItems;
         ItemTypeCount[] mintedItems;
         ItemTypeCount[] burnedItems;
+        ItemTypeCount[] swappedItems;
+        ItemTypeCount[] transferredOutItems;
+        ItemTypeCount[] transferredInItems;
         // Full mappings for O(1) lookups
         mapping(uint8 => uint256) minedBlockCounts;
         mapping(uint8 => uint256) placedBlockCounts;
         mapping(uint256 => uint256) craftedItemCounts;
         mapping(uint256 => uint256) mintedItemCounts;
         mapping(uint256 => uint256) burnedItemCounts;
+        mapping(uint256 => uint256) swappedItemCounts;
+        mapping(uint256 => uint256) transferredOutItemCounts;
+        mapping(uint256 => uint256) transferredInItemCounts;
     }
 
     // Functions
@@ -58,6 +70,8 @@ interface IUserStatsSystem {
     function recordItemBurned(address user, uint256 itemType, uint256 amount) external;
     function recordItemMoved(address user, uint8 fromSlot, uint8 toSlot, uint256 itemType, uint256 amount) external;
     function recordPlayerUpdate(address user) external;
+    function recordItemSwapped(address user, uint256[] calldata inputTypes, uint256[] calldata inputAmounts, uint256 outputType, uint256 outputAmount) external;
+    function recordItemTransferred(address from, address to, uint256 itemType, uint256 amount) external;
     
     // View functions
     function getUserStats(address user) external view returns (
@@ -82,6 +96,9 @@ interface IUserStatsSystem {
         uint256 totalMinted,
         uint256 totalBurned,
         uint256 totalMoved,
+        uint256 totalSwapped,
+        uint256 totalTransferredOut,
+        uint256 totalTransferredIn,
         ItemTypeCount[] memory mintedItems,
         ItemTypeCount[] memory burnedItems,
         uint256[] memory mintedItemTypes,
@@ -114,6 +131,9 @@ interface IUserStatsSystem {
         uint256[] memory totalMinted,
         uint256[] memory totalBurned,
         uint256[] memory totalMoved,
+        uint256[] memory totalSwapped,
+        uint256[] memory totalTransferredOut,
+        uint256[] memory totalTransferredIn,
         ItemTypeCount[][] memory mintedItems,
         ItemTypeCount[][] memory burnedItems,
         uint256[][] memory mintedItemTypes,
@@ -143,6 +163,9 @@ interface IUserStatsSystem {
         uint256 totalMinted,
         uint256 totalBurned,
         uint256 totalMoved,
+        uint256 totalSwapped,
+        uint256 totalTransferredOut,
+        uint256 totalTransferredIn,
         ItemTypeCount[] memory mintedItems,
         ItemTypeCount[] memory burnedItems,
         uint256[] memory mintedItemTypes,
@@ -150,4 +173,7 @@ interface IUserStatsSystem {
         uint256[] memory burnedItemTypes,
         uint256[] memory burnedCounts
     );
+
+    // New function for getting global counter
+    function getGlobalCount() external view returns (uint256 totalCount, uint256 lastUpdateTimestamp);
 } 

@@ -25,6 +25,8 @@ library MinecraftConstants {
     uint8 constant SPONGE = 19;
     uint8 constant GLASS = 20;
     uint8 constant LAPIS_LAZULI_ORE = 21;
+    uint8 constant STONE_BRICKS = 98;
+    uint8 constant WHITE_WOOL = 35;
 
     
     uint8 constant DIAMOND_ORE = 56;
@@ -34,12 +36,19 @@ library MinecraftConstants {
     uint8 constant CLAY = 82;
     uint8 constant EMERALD_ORE = 129;
 
+    // Block variants
+    uint8 constant IRON_BLOCK = 42;
+    uint8 constant GOLD_BLOCK = 41;
+    uint8 constant DIAMOND_BLOCK = 57;
+    uint8 constant LAPIS_BLOCK = 22;
+
     // Basic Materials
     uint16 constant STICK = 280;
     uint16 constant IRON_INGOT = 265;
     uint16 constant GOLD_INGOT = 266;
     uint16 constant DIAMOND = 264;
     uint16 constant COAL = 263;
+    uint16 constant LAPIS_LAZULI = 351;
 
     // Tool IDs (from Minecraft data values)
     uint16 constant WOODEN_PICKAXE = 270;

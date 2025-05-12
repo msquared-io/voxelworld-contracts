@@ -5,7 +5,7 @@ export const MinecraftConstants = {
   DIRT: 3,
   IRON_ORE: 15,
   LEAVES: 18,
-  WOOD: 17,
+  OAK_WOOD: 17,
   COBBLESTONE: 4,
 
   // Crafting Items

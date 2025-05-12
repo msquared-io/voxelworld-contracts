@@ -153,6 +153,21 @@ export const VoxelWorldAbi = [
         "type": "uint256[]"
       },
       {
+        "internalType": "uint256[]",
+        "name": "totalSwapped",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "totalTransferredOut",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "totalTransferredIn",
+        "type": "uint256[]"
+      },
+      {
         "components": [
           {
             "internalType": "uint256",
@@ -486,6 +501,21 @@ export const VoxelWorldAbi = [
         "type": "uint256"
       },
       {
+        "internalType": "uint256",
+        "name": "totalSwapped",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalTransferredOut",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalTransferredIn",
+        "type": "uint256"
+      },
+      {
         "components": [
           {
             "internalType": "uint256",
@@ -743,6 +773,21 @@ export const VoxelWorldAbi = [
       {
         "internalType": "uint256",
         "name": "totalMoved",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalSwapped",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalTransferredOut",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalTransferredIn",
         "type": "uint256"
       },
       {

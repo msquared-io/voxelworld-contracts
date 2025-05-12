@@ -10,7 +10,7 @@ export const somnia = defineChain({
     symbol: "STT",
   },
   rpcUrls: {
-    default: { http: ["https://dream-rpc.somnia.network/"] },
-    public: { http: ["https://dream-rpc.somnia.network/"] },
+    default: { http: ["https://dream-rpc.somnia.network"] },
+    public: { http: ["https://dream-rpc.somnia.network"] },
   },
 })

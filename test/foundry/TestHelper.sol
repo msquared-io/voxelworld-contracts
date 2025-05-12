@@ -29,10 +29,19 @@ contract TestHelper is Test {
     uint256 constant GRASS = 2;
     uint256 constant DIRT = 3;
     uint256 constant IRON_ORE = 15;
+    uint256 constant COAL_ORE = 16;
+    uint256 constant LAPIS_LAZULI_ORE = 21;
+    uint256 constant LAPIS_BLOCK = 22;
+    uint256 constant GOLD_BLOCK = 41;
+    uint256 constant IRON_BLOCK = 42;
+    uint256 constant DIAMOND_BLOCK = 57;
     uint256 constant DIAMOND_ORE = 56;
+    uint256 constant GOLD_ORE = 14;
     uint256 constant LEAVES = 18;
     uint256 constant WOOD = 17;
     uint256 constant COBBLESTONE = 4;
+    uint256 constant STONE_BRICKS = 98;
+    uint256 constant WHITE_WOOL = 35;
 
     // Crafting Items
     uint256 constant WOOD_PLANKS = 5;
@@ -40,6 +49,8 @@ contract TestHelper is Test {
     uint256 constant IRON_INGOT = 265;
     uint256 constant GOLD_INGOT = 266;
     uint256 constant DIAMOND = 264;
+    uint256 constant COAL = 263;
+    uint256 constant LAPIS_LAZULI = 351;
 
     // Tools
     uint256 constant WOODEN_PICKAXE = 270;
